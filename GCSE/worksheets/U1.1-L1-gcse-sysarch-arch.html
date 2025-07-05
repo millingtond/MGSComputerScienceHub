@@ -1,0 +1,2623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Von Neumann Architecture & FDE Cycle - Interactive Worksheet</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #7c3aed;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+            --bg-color: #ffffff;
+            --text-color: #1f2937;
+            --border-color: #e5e7eb;
+            --card-bg: #f9fafb;
+            --font-size: 16px;
+        }
+
+        .high-contrast {
+            --bg-color: #000000;
+            --text-color: #ffffff;
+            --border-color: #ffffff;
+            --card-bg: #1a1a1a;
+            --primary-color: #60a5fa;
+            --secondary-color: #a78bfa;
+        }
+
+        .dyslexia-font {
+            font-family: 'OpenDyslexic', Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            font-size: var(--font-size);
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+
+        .achievement-popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success-color);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            display: none;
+            animation: slideIn 0.5s ease-out;
+            z-index: 1000;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .nav-button {
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-button:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .nav-button.active {
+            background: var(--secondary-color);
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .section.active {
+            display: block;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .drag-item {
+            background: var(--primary-color);
+            color: white;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 8px;
+            cursor: move;
+            transition: all 0.3s ease;
+            display: inline-block;
+            touch-action: none;
+        }
+
+        .drag-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .drag-item.dragging {
+            opacity: 0.5;
+            transform: scale(1.1);
+        }
+
+        .drop-zone {
+            min-height: 60px;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+            background: rgba(0,0,0,0.02);
+        }
+
+        .drop-zone.drag-over {
+            background: rgba(37, 99, 235, 0.1);
+            border-color: var(--primary-color);
+            transform: scale(1.02);
+        }
+
+        .drop-zone.correct {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: var(--success-color);
+        }
+
+        .drop-zone.incorrect {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--error-color);
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .button:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .reset-button {
+            background: var(--warning-color);
+        }
+
+        .xp-bar {
+            background: var(--border-color);
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .xp-fill {
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            height: 100%;
+            width: 0%;
+            transition: width 1s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .xp-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
+            animation: shimmer 2s infinite;
+        }
+
+        .xp-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .quiz-option {
+            background: var(--card-bg);
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quiz-option:hover {
+            border-color: var(--primary-color);
+            transform: translateX(5px);
+        }
+
+        .quiz-option.selected {
+            background: rgba(37, 99, 235, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .quiz-option.correct {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: var(--success-color);
+        }
+
+        .quiz-option.incorrect {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--error-color);
+        }
+
+        .canvas-container {
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            margin: 20px 0;
+            position: relative;
+            background: white;
+            touch-action: none;
+        }
+
+        #drawingCanvas {
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .shame-message {
+            background: #ff0000;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 20px;
+            animation: blink 1s infinite;
+            display: none;
+            margin: 20px 0;
+        }
+
+        @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0.5; }
+        }
+
+        .accessibility-controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            z-index: 999;
+        }
+
+        .accessibility-button {
+            display: block;
+            margin: 5px 0;
+            padding: 8px 15px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            text-align: left;
+        }
+
+        .cpu-simulation {
+            background: #1a1a1a;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .register {
+            background: #333;
+            color: #fff;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            display: inline-block;
+            min-width: 150px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .register.active {
+            background: var(--primary-color);
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.5);
+        }
+
+        .bus-line {
+            height: 2px;
+            background: #666;
+            position: absolute;
+            transition: all 0.3s ease;
+        }
+
+        .bus-line.active {
+            background: var(--success-color);
+            box-shadow: 0 0 10px var(--success-color);
+        }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            opacity: 0;
+            animation: particle-fall 1s ease-out forwards;
+        }
+
+        .architecture-component {
+            transition: all 0.3s ease;
+        }
+        
+        .register-item {
+            transition: all 0.3s ease;
+        }
+        
+        #memoryContents > div {
+            transition: all 0.3s ease;
+        }
+        
+        #memoryContents span[id^="mem"] {
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .slide-in {
+            animation: slideInFromBottom 0.5s ease-out;
+        }
+
+        @keyframes slideInFromBottom {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .mark-scheme {
+            background: #f0f9ff;
+            border: 2px solid #0284c7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .mark-scheme.revealed {
+            display: block;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Anti-paste styling */
+        .no-paste {
+            position: relative;
+        }
+
+        .no-paste::after {
+            content: attr(data-paste-message);
+            position: absolute;
+            top: -30px;
+            left: 0;
+            background: var(--error-color);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .no-paste.paste-attempted::after {
+            opacity: 1;
+        }
+
+        /* --- REVISED VON NEUMANN DIAGRAM STYLES --- */
+        #vonNeumannDiagram {
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        #architectureStatus {
+            background: rgba(37, 99, 235, 0.2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            min-height: 80px; /* Increased height */
+            font-size: 17px; /* Increased font size */
+            font-weight: 500; /* Bolder text */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .architecture-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch; /* Make components equal height */
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .cpu-container-vn, .memory-container-vn {
+            border-radius: 20px;
+            padding: 20px;
+            flex-grow: 1;
+            flex-basis: 400px;
+            min-height: 520px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cpu-container-vn {
+            border: 4px solid #60a5fa;
+            background: rgba(96, 165, 250, 0.1);
+        }
+
+        .memory-container-vn {
+            border: 4px solid #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .vn-title {
+            text-align: center;
+            margin: 0 0 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .cpu-container-vn .vn-title { color: #60a5fa; }
+        .memory-container-vn .vn-title { color: #10b981; }
+
+        .cpu-top-row {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        #controlUnit, #alu {
+            background: #4b5563;
+            border: 2px solid #9ca3af;
+            border-radius: 10px;
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #controlUnit { flex: 1; }
+        #controlUnit strong { color: #fbbf24; font-size: 16px; }
+
+        .alu-clock-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #alu {
+            width: 100%;
+        }
+        #alu strong { color: #34d399; font-size: 16px; }
+        
+        #clock {
+            background: #ec4899;
+            border: 2px solid #9ca3af;
+            border-radius: 8px;
+            padding: 6px;
+            text-align: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            width: 100px;
+            height: 35px;
+        }
+        
+        .cpu-middle-row {
+             margin: 20px 0;
+             text-align: center;
+        }
+
+        #cache {
+            background: #6366f1;
+            border: 2px solid #9ca3af;
+            border-radius: 10px;
+            padding: 12px 20px;
+            display: inline-block;
+            color: #fbbf24;
+            font-weight: bold;
+        }
+
+        .registers-container-vn {
+            margin-top: auto;
+            border: 3px dashed #6b7280;
+            border-radius: 12px;
+            padding: 15px;
+        }
+        .registers-container-vn strong {
+            color: #a78bfa;
+            font-size: 15px;
+            display: block;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .register-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .register-item {
+            background: #374151;
+            padding: 12px;
+            border-radius: 6px;
+            border: 2px solid #4b5563;
+        }
+        .register-item strong {
+            color: #fbbf24;
+            font-size: 13px;
+            display: block;
+            margin-bottom: 3px;
+        }
+        .register-item small {
+            color: #10b981;
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            min-height: 14px;
+        }
+
+        .bus-system-container {
+            flex-grow: 0;
+            flex-shrink: 0;
+            flex-basis: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 50px;
+            min-height: 520px;
+        }
+
+        .bus {
+            position: relative;
+            height: 30px;
+            cursor: help;
+        }
+        .bus-line-vn {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 6px;
+            transform: translateY(-50%);
+            opacity: 0.5;
+        }
+        .bus-label {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        
+        #addressBus .bus-line-vn { background: #f59e0b; }
+        #addressBus .bus-label { color: #f59e0b; }
+        #dataBus .bus-line-vn { background: #10b981; }
+        #dataBus .bus-label { color: #10b981; }
+        #controlBus .bus-line-vn { background: #ef4444; }
+        #controlBus .bus-label { color: #ef4444; }
+        
+        .packet {
+            position: absolute;
+            top: 50%;
+            left: -10px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+        }
+        #addressBus .packet { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
+        #dataBus .packet { background: #10b981; box-shadow: 0 0 8px #10b981; }
+        #controlBus .packet { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+        
+        @keyframes flow-forward {
+            0% { left: -10px; opacity: 1; }
+            100% { left: calc(100% - 5px); opacity: 1; }
+        }
+        @keyframes flow-backward {
+            0% { left: calc(100% - 5px); opacity: 1; }
+            100% { left: -10px; opacity: 1; }
+        }
+        .packet.animate-forward { animation: flow-forward 1s ease-out; }
+        .packet.animate-backward { animation: flow-backward 1s ease-out; }
+
+        #memoryContents {
+             font-family: monospace;
+             font-size: 14px;
+             color: #d1d5db;
+        }
+        #memoryContents > div {
+            border-bottom: 2px solid #374151;
+            padding: 10px 8px;
+        }
+        #memoryContents > div:last-child {
+            border-bottom: none;
+        }
+        #memoryContents .mem-address { color: #60a5fa; }
+        #memoryContents .mem-data-address { color: #f59e0b; }
+        #memoryContents .mem-value { margin-left: 10px; }
+
+        @media (max-width: 900px) {
+            .architecture-container {
+                flex-direction: column;
+            }
+            .cpu-container-vn, .memory-container-vn, .bus-system-container {
+                width: 100%;
+                flex-basis: auto;
+                min-height: auto;
+            }
+            .bus-system-container {
+                flex-direction: row;
+                gap: 20px;
+                width: 80%;
+                margin: 20px auto;
+            }
+            .bus {
+                writing-mode: vertical-rl;
+                transform: rotate(180deg);
+                height: 80px;
+                width: 30px;
+            }
+            .bus-label {
+                top: auto;
+                left: auto;
+                bottom: -20px;
+                transform: rotate(90deg) translateX(50%);
+                transform-origin: center;
+            }
+            .packet { display: none; }
+        }
+        /* --- END OF REVISED STYLES --- */
+    </style>
+</head>
+<body>
+    <div class="accessibility-controls" role="navigation" aria-label="Accessibility Controls">
+        <button class="accessibility-button" onclick="toggleHighContrast()" aria-label="Toggle High Contrast Mode">
+            🔲 High Contrast
+        </button>
+        <button class="accessibility-button" onclick="toggleDyslexiaFont()" aria-label="Toggle Dyslexia-Friendly Font">
+            📖 Dyslexia Font
+        </button>
+        <button class="accessibility-button" onclick="changeFontSize(2)" aria-label="Increase Font Size">
+            A+ Larger Text
+        </button>
+        <button class="accessibility-button" onclick="changeFontSize(-2)" aria-label="Decrease Font Size">
+            A- Smaller Text
+        </button>
+    </div>
+
+    <div class="shame-message" id="shameMessage" role="alert">
+        🚫 PASTE DETECTED! Academic integrity violation recorded. 🚫
+    </div>
+
+    <div class="achievement-popup" id="achievementPopup" role="status" aria-live="polite">
+        <span id="achievementText"></span>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <h1>Von Neumann Architecture & Fetch-Execute Cycle</h1>
+            <p>GCSE Computer Science - OCR J277</p>
+            <div class="xp-bar" role="progressbar" aria-label="Experience Points" aria-valuemin="0" aria-valuemax="500" aria-valuenow="0">
+                <div class="xp-fill" id="xpFill"></div>
+                <div class="xp-text" id="xpText">Level 0 - 0/100 XP</div>
+            </div>
+        </header>
+
+        <nav class="navigation" role="navigation" aria-label="Section Navigation">
+            <button class="nav-button active" onclick="showSection('starter')" aria-label="Go to Starter Activity">Starter</button>
+            <button class="nav-button" onclick="showSection('section1')" aria-label="Go to Von Neumann Overview">Von Neumann Overview</button>
+            <button class="nav-button" onclick="showSection('section2')" aria-label="Go to CPU Components">CPU Components</button>
+            <button class="nav-button" onclick="showSection('section3')" aria-label="Go to Fetch-Execute Cycle">Fetch-Execute Cycle</button>
+            <button class="nav-button" onclick="showSection('section4')" aria-label="Go to CPU-RAM Interaction">CPU-RAM Interaction</button>
+            <button class="nav-button" onclick="showSection('practice')" aria-label="Go to Practice Questions">Practice Questions</button>
+            <button class="nav-button" onclick="showSection('extension')" aria-label="Go to Extension Activities">Extension</button>
+            <button class="nav-button" onclick="showSection('summary')" aria-label="Go to Summary Quiz">Summary</button>
+        </nav>
+
+        <section id="starter" class="section active">
+            <div class="card">
+                <h2>🚀 Starter Activity: Component Recognition</h2>
+                <p><strong>Learning Objective:</strong> Test your knowledge of basic computer components before we dive into Von Neumann architecture.</p>
+                
+                <h3>Drag and Drop: Match the components to their descriptions</h3>
+                <div class="drag-container">
+                    <div class="drag-items" id="starterDragItems">
+                        <div class="drag-item" draggable="true" data-answer="cpu">CPU</div>
+                        <div class="drag-item" draggable="true" data-answer="ram">RAM</div>
+                        <div class="drag-item" draggable="true" data-answer="storage">Storage</div>
+                        <div class="drag-item" draggable="true" data-answer="input">Input Device</div>
+                    </div>
+                    
+                    <div class="drop-zones">
+                        <div class="drop-zone" data-expected="cpu">
+                            <p>Processes instructions and performs calculations</p>
+                        </div>
+                        <div class="drop-zone" data-expected="ram">
+                            <p>Temporary memory that stores running programs</p>
+                        </div>
+                        <div class="drop-zone" data-expected="storage">
+                            <p>Permanent memory for long-term data storage</p>
+                        </div>
+                        <div class="drop-zone" data-expected="input">
+                            <p>Allows users to interact with the computer</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="button" onclick="checkStarterActivity()">Check Answers</button>
+                <button class="button reset-button" onclick="resetStarterActivity()">Reset</button>
+                
+                <div id="starterFeedback" style="margin-top: 20px;"></div>
+            </div>
+        </section>
+
+        <section id="section1" class="section">
+            <div class="card">
+                <h2>📐 Von Neumann Architecture Overview</h2>
+                <p><strong>Learning Objectives:</strong></p>
+                <ul>
+                    <li>Understand the stored program concept</li>
+                    <li>Identify the key components of Von Neumann architecture</li>
+                    <li>Explain how this architecture revolutionized computing</li>
+                </ul>
+                
+                <h3>The Stored Program Concept</h3>
+                <p>The revolutionary idea that both <strong>instructions</strong> and <strong>data</strong> are stored in the same memory system during execution.</p>
+                
+                <div class="cpu-simulation" id="vonNeumannDiagram">
+                    <h4 style="color: white; text-align: center; margin-bottom: 20px;">Interactive Von Neumann Architecture</h4>
+                    
+                    <div id="architectureStatus">
+                        <span>Click "Start Animation" to see how it works!</span>
+                    </div>
+                    
+                    <div style="background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                        <strong style="color: white;">Legend:</strong>
+                        <span style="color: #fbbf24; margin: 0 10px;">● Active</span>
+                        <span style="color: #f59e0b; margin: 0 10px;">● Address Bus (→)</span>
+                        <span style="color: #10b981; margin: 0 10px;">● Data Bus (↔)</span>
+                        <span style="color: #ef4444; margin: 0 10px;">● Control Bus (↔)</span>
+                    </div>
+                    
+                    <div class="architecture-container">
+                        <div class="cpu-container-vn">
+                            <h5 class="vn-title">CENTRAL PROCESSING UNIT (CPU)</h5>
+                            
+                            <div class="cpu-top-row">
+                                <div class="architecture-component" id="controlUnit">
+                                    <strong>Control Unit</strong>
+                                </div>
+                                <div class="alu-clock-wrapper">
+                                    <div class="architecture-component" id="alu">
+                                        <strong>ALU</strong>
+                                    </div>
+                                    <div class="architecture-component" id="clock">
+                                        <strong>Clock</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="cpu-middle-row">
+                                <div class="architecture-component" id="cache">
+                                    <strong>Cache</strong>
+                                </div>
+                            </div>
+                            
+                            <div class="registers-container-vn">
+                                <strong>REGISTERS</strong>
+                                <div class="register-grid">
+                                    <div class="register-item" id="pc">
+                                        <strong>PC</strong>
+                                        <small id="pcValue">0x0000</small>
+                                    </div>
+                                    <div class="register-item" id="mar">
+                                        <strong>MAR</strong>
+                                        <small id="marValue">----</small>
+                                    </div>
+                                    <div class="register-item" id="mdr">
+                                        <strong>MDR</strong>
+                                        <small id="mdrValue">----</small>
+                                    </div>
+                                    <div class="register-item" id="acc">
+                                        <strong>ACC</strong>
+                                        <small id="accValue">0</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bus-system-container">
+                            <div class="bus tooltip" id="addressBus">
+                                <div class="bus-line-vn"></div>
+                                <div class="packet"></div>
+                                <small class="bus-label">Address Bus (→)</small>
+                                <span class="tooltiptext">Carries memory addresses from CPU to RAM. One-way only.</span>
+                            </div>
+                             <div class="bus tooltip" id="dataBus">
+                                <div class="bus-line-vn"></div>
+                                <div class="packet"></div>
+                                <small class="bus-label">Data Bus (↔)</small>
+                                <span class="tooltiptext">Carries data and instructions between CPU and RAM. Two-way.</span>
+                            </div>
+                             <div class="bus tooltip" id="controlBus">
+                                <div class="bus-line-vn"></div>
+                                <div class="packet"></div>
+                                <small class="bus-label">Control Bus (↔)</small>
+                                <span class="tooltiptext">Carries control signals like read/write commands. Two-way.</span>
+                            </div>
+                        </div>
+
+                        <div class="memory-container-vn">
+                            <h5 class="vn-title">MAIN MEMORY (RAM)</h5>
+                            <div id="memoryContents">
+                                <div><span class="mem-address">0x0000:</span> <span class="mem-value" id="mem0">LOAD 5</span></div>
+                                <div><span class="mem-address">0x0001:</span> <span class="mem-value" id="mem1">ADD 3</span></div>
+                                <div><span class="mem-address">0x0002:</span> <span class="mem-value" id="mem2">STORE 0x0005</span></div>
+                                <div><span class="mem-address">0x0003:</span> <span class="mem-value" id="mem3">HALT</span></div>
+                                <div style="margin-top: 30px;"><span class="mem-data-address">0x0004:</span> <span class="mem-value" id="mem4">[Data: 5]</span></div>
+                                <div><span class="mem-data-address">0x0005:</span> <span class="mem-value" id="mem5">[Data: 0]</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button class="button" onclick="startVonNeumannAnimation()" id="startAnimBtn" style="background: #10b981;">Start Animation</button>
+                        <button class="button" onclick="stepVonNeumannAnimation()" id="stepAnimBtn" style="background: #f59e0b; display: none;">Next Step</button>
+                        <button class="button reset-button" onclick="resetVonNeumannAnimation()">Reset</button>
+                    </div>
+                </div>
+                
+                <h3>Component Matching Exercise</h3>
+                <p>Match each Von Neumann component with its function:</p>
+                
+                <div class="drag-container">
+                    <div class="drag-items" id="vonNeumannDragItems">
+                        <div class="drag-item" draggable="true" data-answer="control">Control Unit</div>
+                        <div class="drag-item" draggable="true" data-answer="alu">ALU</div>
+                        <div class="drag-item" draggable="true" data-answer="memory">Memory</div>
+                        <div class="drag-item" draggable="true" data-answer="bus">System Bus</div>
+                    </div>
+                    
+                    <div class="drop-zones">
+                        <div class="drop-zone" data-expected="control">
+                            <p>Manages the flow of data and decodes instructions</p>
+                        </div>
+                        <div class="drop-zone" data-expected="alu">
+                            <p>Performs mathematical and logical operations</p>
+                        </div>
+                        <div class="drop-zone" data-expected="memory">
+                            <p>Stores both programs and data together</p>
+                        </div>
+                        <div class="drop-zone" data-expected="bus">
+                            <p>Communication pathway for addresses, data, and control signals</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="button" onclick="checkVonNeumannMatching()">Check Answers</button>
+                <button class="button reset-button" onclick="resetVonNeumannMatching()">Reset</button>
+                
+                <div id="vonNeumannFeedback" style="margin-top: 20px;"></div>
+                
+                <h3>🌍 Real-World Context</h3>
+                <div class="card" style="background: #f0f9ff;">
+                    <p><strong>Did you know?</strong> Every smartphone, laptop, and desktop computer you use today is based on Von Neumann architecture! This design from 1945 is still the foundation of modern computing.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="section2" class="section">
+            <div class="card">
+                <h2>🔧 CPU Components Deep Dive</h2>
+                <p><strong>Learning Objectives:</strong></p>
+                <ul>
+                    <li>Identify all CPU registers and their functions</li>
+                    <li>Understand the role of the ALU and Control Unit</li>
+                    <li>Explain how cache memory improves performance</li>
+                    <li>Describe how the clock synchronizes CPU operations</li>
+                </ul>
+                
+                <h3>Interactive Register Explorer</h3>
+                <div class="cpu-simulation">
+                    <h4 style="color: white; text-align: center;">Click on each register to learn more</h4>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 20px;">
+                        <div class="register tooltip" onclick="explainRegister('pc')" style="cursor: pointer;">
+                            <strong>Program Counter (PC)</strong>
+                            <span class="tooltiptext">Holds the address of the next instruction to be fetched</span>
+                        </div>
+                        <div class="register tooltip" onclick="explainRegister('mar')" style="cursor: pointer;">
+                            <strong>MAR</strong>
+                            <span class="tooltiptext">Memory Address Register - stores addresses for memory access</span>
+                        </div>
+                        <div class="register tooltip" onclick="explainRegister('mdr')" style="cursor: pointer;">
+                            <strong>MDR</strong>
+                            <span class="tooltiptext">Memory Data Register - stores data being transferred</span>
+                        </div>
+                        <div class="register tooltip" onclick="explainRegister('acc')" style="cursor: pointer;">
+                            <strong>Accumulator</strong>
+                            <span class="tooltiptext">Stores results from ALU operations</span>
+                        </div>
+                        <div class="register tooltip" onclick="explainRegister('cache')" style="cursor: pointer;">
+                            <strong>Cache</strong>
+                            <span class="tooltiptext">Super-fast memory on the CPU chip for frequently used data</span>
+                        </div>
+                        <div class="register tooltip" onclick="explainRegister('clock')" style="cursor: pointer;">
+                            <strong>Clock</strong>
+                            <span class="tooltiptext">Synchronizes all CPU operations with regular pulses</span>
+                        </div>
+                </div>
+                
+                <h3>Fill in the Blanks: Register Functions</h3>
+                <p>Complete the following statements about CPU registers:</p>
+                
+                <div style="margin: 20px 0;">
+                    <p>1. The <input type="text" class="no-paste" style="width: 200px;" id="blank1" data-paste-message="No pasting allowed!"> stores the address of the next instruction to execute.</p>
+                    <p>2. Results from ALU calculations are stored in the <input type="text" class="no-paste" style="width: 200px;" id="blank2" data-paste-message="No pasting allowed!">.</p>
+                    <p>3. The <input type="text" class="no-paste" style="width: 200px;" id="blank3" data-paste-message="No pasting allowed!"> holds data that is being transferred to or from memory.</p>
+                </div>
+                
+                <button class="button" onclick="checkRegisterBlanks()">Check Answers</button>
+                <div id="blanksFeedback" style="margin-top: 20px;"></div>
+                
+                <h3>Cache and Clock Components</h3>
+                <div class="card" style="background: rgba(99, 102, 241, 0.1);">
+                    <p><strong>Cache Memory:</strong> A small amount of very fast memory built directly onto the CPU chip. It stores frequently used instructions and data, making them much faster to access than fetching from RAM.</p>
+                    <p><strong>Clock:</strong> Synchronizes all CPU operations by sending regular electrical pulses. The clock speed (measured in GHz) determines how many instructions can be processed per second.</p>
+                </div>
+                
+                <h3>⚠️ Common Mistakes</h3>
+                <div class="card" style="background: #fef3c7;">
+                    <ul>
+                        <li>❌ Confusing MAR and MDR - Remember: MAR holds addresses, MDR holds data</li>
+                        <li>❌ Thinking the Control Unit is a register - It's a component, not a register!</li>
+                        <li>❌ Forgetting that cache is on the CPU chip itself</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="section3" class="section">
+            <div class="card">
+                <h2>🔄 The Fetch-Execute Cycle</h2>
+                <p><strong>Learning Objectives:</strong></p>
+                <ul>
+                    <li>Describe each phase of the FDE cycle in detail</li>
+                    <li>Understand the role of each register during the cycle</li>
+                    <li>Sequence the steps correctly</li>
+                    <li>Explain how the clock synchronizes operations</li>
+                </ul>
+                
+                <h3>Interactive FDE Cycle Simulation</h3>
+                <div class="cpu-simulation" id="fdeCycleSimulation" style="min-height: 600px; padding: 20px;">
+                    <h4 style="color: white; text-align: center; margin-bottom: 20px;">Watch the Fetch-Execute Cycle in Action</h4>
+                    
+                    <div id="cycleStage" style="color: white; font-size: 20px; text-align: center; margin-bottom: 25px; background: rgba(37, 99, 235, 0.2); padding: 20px; border-radius: 10px; min-height: 80px; display: flex; align-items: center; justify-content: center;">
+                        <span>🎯 Ready to start the Fetch-Decode-Execute cycle...</span>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: stretch; gap: 15px; max-width: 1000px; margin: 0 auto 30px;">
+                        <div class="register" id="fetchStage" style="flex: 1; min-height: 280px; padding: 25px; position: relative; overflow: hidden; background: #1e293b; border: 3px solid #f59e0b;">
+                            <strong style="font-size: 20px; color: #fbbf24; display: block; text-align: center; margin-bottom: 20px;">📥 FETCH</strong>
+                            <div style="margin-top: 20px; font-size: 14px; line-height: 1.8; color: #e2e8f0;">
+                                <div class="step-item" style="margin-bottom: 12px; padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #fbbf24;">1.</span>
+                                    PC contains address of next instruction
+                                </div>
+                                <div class="step-item" style="margin-bottom: 12px; padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #fbbf24;">2.</span>
+                                    Address copied from PC to MAR
+                                </div>
+                                <div class="step-item" style="margin-bottom: 12px; padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #fbbf24;">3.</span>
+                                    Memory reads instruction at that address
+                                </div>
+                                <div class="step-item" style="margin-bottom: 12px; padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #fbbf24;">4.</span>
+                                    Instruction transferred to MDR
+                                </div>
+                                <div class="step-item" style="padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #fbbf24;">5.</span>
+                                    PC incremented for next cycle
+                                </div>
+                            </div>
+                            <div class="stage-indicator" style="position: absolute; bottom: 15px; right: 15px; width: 50px; height: 50px; background: rgba(251, 191, 36, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <span style="font-size: 24px; opacity: 0.3;">1</span>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; align-items: center; color: #60a5fa; font-size: 40px; padding: 0 10px;">
+                            <span style="animation: pulse 2s infinite;">→</span>
+                        </div>
+                        
+                        <div class="register" id="decodeStage" style="flex: 1; min-height: 280px; padding: 25px; position: relative; overflow: hidden; background: #1e293b; border: 3px solid #10b981;">
+                            <strong style="font-size: 20px; color: #10b981; display: block; text-align: center; margin-bottom: 20px;">🔍 DECODE</strong>
+                            <div style="margin-top: 20px; font-size: 14px; line-height: 1.8; color: #e2e8f0;">
+                                <div class="step-item" style="margin-bottom: 12px; padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #10b981;">1.</span>
+                                    Control Unit reads instruction from MDR
+                                </div>
+                                <div class="step-item" style="margin-bottom: 12px; padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #10b981;">2.</span>
+                                    Instruction broken into opcode + operands
+                                </div>
+                                <div class="step-item" style="margin-bottom: 12px; padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #10b981;">3.</span>
+                                    Control Unit looks up instruction meaning
+                                </div>
+                                <div class="step-item" style="margin-bottom: 12px; padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #10b981;">4.</span>
+                                    Required control signals prepared
+                                </div>
+                                <div class="step-item" style="padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #10b981;">5.</span>
+                                    Components prepared for execution
+                                </div>
+                            </div>
+                            <div class="stage-indicator" style="position: absolute; bottom: 15px; right: 15px; width: 50px; height: 50px; background: rgba(16, 185, 129, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <span style="font-size: 24px; opacity: 0.3;">2</span>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; align-items: center; color: #60a5fa; font-size: 40px; padding: 0 10px;">
+                            <span style="animation: pulse 2s infinite;">→</span>
+                        </div>
+                        
+                        <div class="register" id="executeStage" style="flex: 1; min-height: 280px; padding: 25px; position: relative; overflow: hidden; background: #1e293b; border: 3px solid #ef4444;">
+                            <strong style="font-size: 20px; color: #ef4444; display: block; text-align: center; margin-bottom: 20px;">⚡ EXECUTE</strong>
+                            <div style="margin-top: 20px; font-size: 14px; line-height: 1.8; color: #e2e8f0;">
+                                <div class="step-item" style="margin-bottom: 12px; padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #ef4444;">1.</span>
+                                    Control signals sent to components
+                                </div>
+                                <div class="step-item" style="margin-bottom: 12px; padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #ef4444;">2.</span>
+                                    ALU performs calculation (if needed)
+                                </div>
+                                <div class="step-item" style="margin-bottom: 12px; padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #ef4444;">3.</span>
+                                    Memory accessed (if needed)
+                                </div>
+                                <div class="step-item" style="margin-bottom: 12px; padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #ef4444;">4.</span>
+                                    Results stored in registers
+                                </div>
+                                <div class="step-item" style="padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0; color: #ef4444;">5.</span>
+                                    Clock pulse completes the cycle
+                                </div>
+                            </div>
+                            <div class="stage-indicator" style="position: absolute; bottom: 15px; right: 15px; width: 50px; height: 50px; background: rgba(239, 68, 68, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <span style="font-size: 24px; opacity: 0.3;">3</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <span style="color: #9ca3af;">Current Instruction: </span>
+                        <span id="currentInstruction" style="color: #fbbf24; font-weight: bold; font-size: 18px;">Ready to start...</span>
+                    </div>
+                    
+                    <div style="background: #1e293b; border-radius: 10px; padding: 20px; margin-bottom: 20px; position: relative; overflow: hidden;">
+                        <h5 style="color: white; margin-bottom: 15px;">🔄 Data Flow Visualization:</h5>
+                        <div style="display: flex; justify-content: space-between; align-items: center; min-height: 80px;">
+                            <div style="background: #374151; padding: 10px 20px; border-radius: 8px; color: #60a5fa; font-weight: bold; transition: all 0.3s ease;">
+                                <small style="display: block; color: #9ca3af;">PC</small>
+                                <span id="miniPC">0x0000</span>
+                            </div>
+                            <div style="color: #f59e0b;">→</div>
+                            <div style="background: #374151; padding: 10px 20px; border-radius: 8px; color: #60a5fa; font-weight: bold; transition: all 0.3s ease;">
+                                <small style="display: block; color: #9ca3af;">MAR</small>
+                                <span id="miniMAR">----</span>
+                            </div>
+                            <div style="color: #10b981;">↔</div>
+                            <div style="background: #374151; padding: 10px 20px; border-radius: 8px; color: #10b981; font-weight: bold; transition: all 0.3s ease;">
+                                <small style="display: block; color: #9ca3af;">Memory</small>
+                                <span id="miniMem">LOAD 5</span>
+                            </div>
+                            <div style="color: #10b981;">↔</div>
+                            <div style="background: #374151; padding: 10px 20px; border-radius: 8px; color: #60a5fa; font-weight: bold; transition: all 0.3s ease;">
+                                <small style="display: block; color: #9ca3af;">MDR</small>
+                                <span id="miniMDR">----</span>
+                            </div>
+                            <div style="color: #ef4444;">→</div>
+                            <div style="background: #374151; padding: 10px 20px; border-radius: 8px; color: #ef4444; font-weight: bold; transition: all 0.3s ease;">
+                                <small style="display: block; color: #9ca3af;">ACC</small>
+                                <span id="miniACC">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(236, 72, 153, 0.1); border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: center;">
+                        <span style="color: #ec4899; font-size: 24px;">⏰</span>
+                        <p style="color: #f9a8d4; margin: 5px 0;">The CPU clock synchronizes each step with electrical pulses</p>
+                        <small style="color: #fbbf24;">A 3GHz processor = 3 billion cycles per second!</small>
+                    </div>
+                        <div id="fdeProgress" style="width: 0%; height: 100%; background: linear-gradient(to right, #fbbf24, #10b981, #ef4444); transition: width 1.5s ease-out; position: relative;">
+                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.2) 50%, transparent 70%); animation: shimmer 2s infinite;"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 30px; text-align: center;">
+                        <button class="button" onclick="startFDEAnimation()" style="font-size: 18px; padding: 15px 30px;">▶️ Start Cycle</button>
+                        <button class="button reset-button" onclick="resetFDEAnimation()" style="font-size: 18px; padding: 15px 30px;">🔄 Reset</button>
+                        <div style="margin-top: 15px;">
+                            <label style="color: white; font-size: 14px;">
+                                <input type="checkbox" id="fdeAutoPlay" checked> Auto-advance through stages
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>Sequence the FDE Steps</h3>
+                <p>Drag these steps into the correct order for the Fetch-Execute cycle:</p>
+                
+                <div class="drag-container">
+                    <div class="drag-items" id="fdeSequenceItems" style="display: flex; flex-wrap: wrap;">
+                        <div class="drag-item" draggable="true" data-order="3">Instruction decoded by Control Unit</div>
+                        <div class="drag-item" draggable="true" data-order="1">PC contains address of next instruction</div>
+                        <div class="drag-item" draggable="true" data-order="5">PC is incremented</div>
+                        <div class="drag-item" draggable="true" data-order="2">Instruction fetched from memory to MDR</div>
+                        <div class="drag-item" draggable="true" data-order="4">Instruction is executed</div>
+                    </div>
+                    
+                    <h4>Correct Order:</h4>
+                    <div id="fdeDropZones">
+                        <div class="drop-zone" data-order="1">Step 1</div>
+                        <div class="drop-zone" data-order="2">Step 2</div>
+                        <div class="drop-zone" data-order="3">Step 3</div>
+                        <div class="drop-zone" data-order="4">Step 4</div>
+                        <div class="drop-zone" data-order="5">Step 5</div>
+                    </div>
+                </div>
+                
+                <button class="button" onclick="checkFDESequence()">Check Order</button>
+                <button class="button reset-button" onclick="resetFDESequence()">Reset</button>
+                <div id="fdeSequenceFeedback" style="margin-top: 20px;"></div>
+            </div>
+        </section>
+
+        <section id="section4" class="section">
+            <div class="card">
+                <h2>🔗 How CPU and RAM Work Together</h2>
+                <p><strong>Learning Objectives:</strong></p>
+                <ul>
+                    <li>Understand data flow between CPU and RAM</li>
+                    <li>Explain the role of buses in communication</li>
+                    <li>Analyze performance factors</li>
+                </ul>
+                
+                <h3>Interactive Data Flow Visualization</h3>
+                <div class="cpu-simulation">
+                    <h4 style="color: white; text-align: center;">Click to see different bus communications</h4>
+                    <div style="padding: 20px; text-align: center;">
+                        <button class="button" onclick="showBusAnimation('address')" style="background: #f59e0b;">Address Bus</button>
+                        <button class="button" onclick="showBusAnimation('data')" style="background: #10b981;">Data Bus</button>
+                        <button class="button" onclick="showBusAnimation('control')" style="background: #ef4444;">Control Bus</button>
+                    </div>
+                    <div id="busAnimation" style="color: white; padding: 20px; min-height: 100px;"></div>
+                </div>
+                
+                <h3>Quick Quiz: CPU-RAM Communication</h3>
+                <div id="cpuRamQuiz">
+                    <p><strong>Question:</strong> Which bus carries the actual instructions and data between CPU and RAM?</p>
+                    <div class="quiz-option" onclick="selectQuizOption(this, 'address')">Address Bus</div>
+                    <div class="quiz-option" onclick="selectQuizOption(this, 'data')">Data Bus</div>
+                    <div class="quiz-option" onclick="selectQuizOption(this, 'control')">Control Bus</div>
+                    <button class="button" onclick="checkCPURAMQuiz()">Submit Answer</button>
+                    <div id="cpuRamQuizFeedback" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="practice" class="section">
+            <div class="card">
+                <h2>📝 Practice Exam Questions</h2>
+                <p><strong>Instructions:</strong> Answer these exam-style questions. Enter your predicted marks before viewing the mark scheme.</p>
+                
+                <h3>Question 1 (4 marks)</h3>
+                <p>Explain the stored program concept and why it is important in Von Neumann architecture.</p>
+                <textarea class="no-paste" rows="6" id="practiceQ1" placeholder="Type your answer here..." data-paste-message="No pasting allowed!"></textarea>
+                
+                <div style="margin: 20px 0;">
+                    <label>Predicted marks (out of 4): <input type="number" min="0" max="4" id="predictedMarks1"></label>
+                    <button class="button" onclick="revealMarkScheme(1)">View Mark Scheme</button>
+                </div>
+                
+                <div class="mark-scheme" id="markScheme1">
+                    <h4>Mark Scheme:</h4>
+                    <ul>
+                        <li>Both instructions and data stored in same memory (1 mark)</li>
+                        <li>Stored during program execution (1 mark)</li>
+                        <li>Allows programs to be changed without rewiring (1 mark)</li>
+                        <li>Foundation of modern programmable computers (1 mark)</li>
+                    </ul>
+                </div>
+                
+                <h3>Question 2 (6 marks)</h3>
+                <p>Describe the complete Fetch-Execute cycle, including the role of each register involved.</p>
+                <textarea class="no-paste" rows="8" id="practiceQ2" placeholder="Type your answer here..." data-paste-message="No pasting allowed!"></textarea>
+                
+                <div style="margin: 20px 0;">
+                    <label>Predicted marks (out of 6): <input type="number" min="0" max="6" id="predictedMarks2"></label>
+                    <button class="button" onclick="revealMarkScheme(2)">View Mark Scheme</button>
+                </div>
+                
+                <div class="mark-scheme" id="markScheme2">
+                    <h4>Mark Scheme:</h4>
+                    <ul>
+                        <li>PC holds address of next instruction (1 mark)</li>
+                        <li>Address placed in MAR (1 mark)</li>
+                        <li>Instruction fetched from memory to MDR (1 mark)</li>
+                        <li>Control Unit decodes instruction (1 mark)</li>
+                        <li>Instruction is executed (1 mark)</li>
+                        <li>PC is incremented for next instruction (1 mark)</li>
+                    </ul>
+                </div>
+                
+                <h3>Drawing Canvas for Calculations</h3>
+                <p>Use this canvas for any working out (works with stylus/touch):</p>
+                <div class="canvas-container">
+                    <canvas id="drawingCanvas" width="600" height="300"></canvas>
+                </div>
+                <button class="button reset-button" onclick="clearCanvas()">Clear Canvas</button>
+            </div>
+        </section>
+
+        <section id="extension" class="section">
+            <div class="card">
+                <h2>🚀 Extension Activities</h2>
+                <p><strong>Going Beyond the Specification:</strong> These activities will deepen your understanding.</p>
+                
+                <h3>Research Task: Harvard Architecture</h3>
+                <p>Von Neumann architecture isn't the only design. Research Harvard architecture and explain:</p>
+                <ol>
+                    <li>How does it differ from Von Neumann architecture?</li>
+                    <li>What are its advantages and disadvantages?</li>
+                    <li>Where is it commonly used today?</li>
+                </ol>
+                <textarea class="no-paste" rows="8" id="extensionAnswer1" placeholder="Type your research findings here..." data-paste-message="No pasting allowed!"></textarea>
+                <button class="button" onclick="submitExtension(1)">Submit Research</button>
+                
+                <h3>Challenge: Design Your Own Instruction</h3>
+                <p>Create a new CPU instruction that doesn't exist. Describe:</p>
+                <ul>
+                    <li>What your instruction does</li>
+                    <li>Which registers it uses</li>
+                    <li>How it would work in the FDE cycle</li>
+                </ul>
+                <textarea class="no-paste" rows="6" id="extensionAnswer2" placeholder="Describe your custom instruction..." data-paste-message="No pasting allowed!"></textarea>
+                <button class="button" onclick="submitExtension(2)">Submit Design</button>
+                
+                <div id="extensionFeedback" style="margin-top: 20px;"></div>
+            </div>
+        </section>
+
+        <section id="summary" class="section">
+            <div class="card">
+                <h2>🎯 Summary Quiz</h2>
+                <p><strong>Test your understanding:</strong> Complete this final quiz to check your knowledge.</p>
+                
+                <div id="summaryQuiz">
+                    </div>
+                
+                <button class="button" onclick="checkSummaryQuiz()" style="display: none;" id="submitQuizButton">Submit Quiz</button>
+                <div id="quizResults" style="margin-top: 20px;"></div>
+            </div>
+        </section>
+
+        <div class="card" style="margin-top: 30px;">
+            <h2>📹 Video Resources</h2>
+            <p><em>Videos will be added here to support your learning. Check back soon!</em></p>
+            <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center;">
+                <p>🎥 Placeholder for educational videos</p>
+                <p style="font-size: 14px; color: #6b7280; margin-top: 10px;">Videos covering Von Neumann Architecture, FDE Cycle demonstrations, and real-world examples will be embedded here.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let xp = 0;
+        let level = 0;
+        let achievements = new Set();
+        let draggedElement = null;
+        let pasteDetected = false;
+        let quizQuestions = [];
+        let currentQuizAnswers = {};
+        
+        // XP and Achievement System
+        function addXP(amount, reason) {
+            if (achievements.has(reason)) return; // Only count each achievement once
+            
+            achievements.add(reason);
+            xp += amount;
+            updateXPBar();
+            showAchievement(reason, amount);
+        }
+        
+        function updateXPBar() {
+            const xpPerLevel = 100;
+            level = Math.min(Math.floor(xp / xpPerLevel), 5); // Max level 5
+            const levelXP = xp % xpPerLevel;
+            const percentage = (xp / 500) * 100; // 500 total XP for level 5
+            
+            document.getElementById('xpFill').style.width = percentage + '%';
+            document.getElementById('xpText').textContent = `Level ${level} - ${xp}/500 XP`;
+        }
+        
+        function showAchievement(text, xpGained) {
+            const popup = document.getElementById('achievementPopup');
+            const popupText = document.getElementById('achievementText');
+            
+            popupText.textContent = `🏆 ${text} (+${xpGained} XP)`;
+            popup.style.display = 'block';
+            
+            // Create particles
+            createParticles(popup);
+            
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 3000);
+        }
+        
+        function createParticles(element) {
+            const colors = ['#fbbf24', '#f59e0b', '#f97316', '#ef4444', '#ec4899'];
+            for (let i = 0; i < 10; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.width = particle.style.height = Math.random() * 10 + 5 + 'px';
+                particle.style.borderRadius = '50%';
+                element.appendChild(particle);
+                
+                setTimeout(() => particle.remove(), 1000);
+            }
+        }
+        
+        // Accessibility Functions
+        function toggleHighContrast() {
+            document.body.classList.toggle('high-contrast');
+            addXP(5, 'Accessibility Explorer');
+        }
+        
+        function toggleDyslexiaFont() {
+            document.body.classList.toggle('dyslexia-font');
+            addXP(5, 'Font Customizer');
+        }
+        
+        function changeFontSize(change) {
+            const root = document.documentElement;
+            const currentSize = parseInt(getComputedStyle(root).getPropertyValue('--font-size'));
+            const newSize = Math.max(12, Math.min(24, currentSize + change));
+            root.style.setProperty('--font-size', newSize + 'px');
+        }
+        
+        // Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+            
+            document.querySelectorAll('.nav-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Vibrate on mobile
+            if ('vibrate' in navigator) {
+                navigator.vibrate(10);
+            }
+            
+            // Initialize section-specific content
+            if (sectionId === 'summary') {
+                initializeSummaryQuiz();
+            }
+        }
+        
+        // Drag and Drop functionality
+        function initializeDragAndDrop() {
+            const draggables = document.querySelectorAll('.drag-item');
+            const dropZones = document.querySelectorAll('.drop-zone');
+            
+            draggables.forEach(draggable => {
+                draggable.addEventListener('dragstart', handleDragStart);
+                draggable.addEventListener('dragend', handleDragEnd);
+                
+                // Touch support
+                draggable.addEventListener('touchstart', handleTouchStart, {passive: false});
+                draggable.addEventListener('touchmove', handleTouchMove, {passive: false});
+                draggable.addEventListener('touchend', handleTouchEnd);
+            });
+            
+            dropZones.forEach(zone => {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('drop', handleDrop);
+                zone.addEventListener('dragleave', handleDragLeave);
+            });
+        }
+        
+        function handleDragStart(e) {
+            draggedElement = e.target;
+            e.target.classList.add('dragging');
+        }
+        
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+        
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            const dropZone = e.currentTarget;
+            dropZone.classList.remove('drag-over');
+            
+            if (draggedElement && dropZone.children.length === 1) {
+                dropZone.appendChild(draggedElement);
+            }
+        }
+        
+        // Touch support for drag and drop
+        let touchItem = null;
+        let touchOffset = {x: 0, y: 0};
+        
+        function handleTouchStart(e) {
+            touchItem = e.target;
+            const touch = e.touches[0];
+            const rect = touchItem.getBoundingClientRect();
+            touchOffset.x = touch.clientX - rect.left;
+            touchOffset.y = touch.clientY - rect.top;
+            touchItem.style.position = 'fixed';
+            touchItem.style.zIndex = '1000';
+            e.preventDefault();
+        }
+        
+        function handleTouchMove(e) {
+            if (!touchItem) return;
+            const touch = e.touches[0];
+            touchItem.style.left = (touch.clientX - touchOffset.x) + 'px';
+            touchItem.style.top = (touch.clientY - touchOffset.y) + 'px';
+            e.preventDefault();
+        }
+        
+        function handleTouchEnd(e) {
+            if (!touchItem) return;
+            
+            const touch = e.changedTouches[0];
+            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            
+            touchItem.style.position = '';
+            touchItem.style.zIndex = '';
+            
+            if (elementBelow && elementBelow.classList.contains('drop-zone') && elementBelow.children.length === 1) {
+                elementBelow.appendChild(touchItem);
+            }
+            
+            touchItem = null;
+            e.preventDefault();
+        }
+        
+        // Starter Activity
+        function checkStarterActivity() {
+            const dropZones = document.querySelectorAll('#starter .drop-zone');
+            let correct = 0;
+            
+            dropZones.forEach(zone => {
+                const expected = zone.dataset.expected;
+                const dragItem = zone.querySelector('.drag-item');
+                
+                if (dragItem && dragItem.dataset.answer === expected) {
+                    zone.classList.add('correct');
+                    zone.classList.remove('incorrect');
+                    correct++;
+                } else {
+                    zone.classList.add('incorrect');
+                    zone.classList.remove('correct');
+                }
+            });
+            
+            const feedback = document.getElementById('starterFeedback');
+            feedback.innerHTML = `<p><strong>Score: ${correct}/4</strong></p>`;
+            
+            if (correct === 4) {
+                feedback.innerHTML += '<p style="color: var(--success-color);">🎉 Perfect! You know your basic components!</p>';
+                addXP(20, 'Component Master');
+            } else {
+                feedback.innerHTML += '<p>Keep trying! Remember: CPU processes, RAM stores temporarily, Storage saves permanently.</p>';
+            }
+        }
+        
+        function resetStarterActivity() {
+            const dragItems = document.getElementById('starterDragItems');
+            const items = document.querySelectorAll('#starter .drag-item');
+            
+            items.forEach(item => {
+                dragItems.appendChild(item);
+            });
+            
+            document.querySelectorAll('#starter .drop-zone').forEach(zone => {
+                zone.classList.remove('correct', 'incorrect');
+            });
+            
+            document.getElementById('starterFeedback').innerHTML = '';
+        }
+        
+        // --- REVISED VON NEUMANN ANIMATION LOGIC ---
+        let vonNeumannStep = 0;
+        
+        const vonNeumannSteps = [
+            {
+                description: "FETCH: The Program Counter (PC) holds the address of the next instruction (0x0000).",
+                highlight: ['pc'],
+                pcValue: '0x0000', marValue: '----', mdrValue: '----', accValue: '0'
+            },
+            {
+                description: "FETCH: Address from PC is copied to the Memory Address Register (MAR).",
+                highlight: ['pc', 'mar'],
+                pcValue: '0x0000', marValue: '0x0000', mdrValue: '----', accValue: '0'
+            },
+            {
+                description: "FETCH: The address is sent from the MAR to RAM via the Address Bus.",
+                highlight: ['mar', 'addressBus'],
+                busAnimation: { bus: 'addressBus', direction: 'forward' },
+                pcValue: '0x0000', marValue: '0x0000', mdrValue: '----', accValue: '0'
+            },
+            {
+                description: "FETCH: The Control Unit sends a 'read' signal via the Control Bus.",
+                highlight: ['controlUnit', 'controlBus', 'mem0'],
+                busAnimation: { bus: 'controlBus', direction: 'forward' },
+                pcValue: '0x0000', marValue: '0x0000', mdrValue: '----', accValue: '0'
+            },
+            {
+                description: "FETCH: Instruction 'LOAD 5' is sent from RAM to the MDR via the Data Bus.",
+                highlight: ['mdr', 'dataBus', 'mem0'],
+                busAnimation: { bus: 'dataBus', direction: 'backward' },
+                pcValue: '0x0000', marValue: '0x0000', mdrValue: 'LOAD 5', accValue: '0'
+            },
+            {
+                description: "FETCH COMPLETE: The Program Counter is incremented for the next cycle.",
+                highlight: ['pc'],
+                pcValue: '0x0001', marValue: '0x0000', mdrValue: 'LOAD 5', accValue: '0'
+            },
+            {
+                description: "DECODE: The Control Unit decodes the instruction 'LOAD 5' from the MDR.",
+                highlight: ['controlUnit', 'mdr'],
+                pcValue: '0x0001', marValue: '0x0000', mdrValue: 'LOAD 5', accValue: '0'
+            },
+            {
+                description: "EXECUTE: The value 5 is loaded into the Accumulator (ACC). The ALU might be involved.",
+                highlight: ['controlUnit', 'acc', 'alu'],
+                pcValue: '0x0001', marValue: '0x0000', mdrValue: 'LOAD 5', accValue: '5'
+            },
+            {
+                description: "Cycle 1 Complete. Ready for next instruction 'ADD 3'. The Clock synchronizes all operations.",
+                highlight: ['pc', 'clock'],
+                pcValue: '0x0001', marValue: '----', mdrValue: '----', accValue: '5'
+            },
+            {
+                description: "Demonstrating a 'STORE' operation: Data (e.g., '8') would be sent from CPU to Memory.",
+                highlight: ['mdr', 'dataBus', 'mem5'],
+                busAnimation: { bus: 'dataBus', direction: 'forward' },
+                pcValue: '0x0002', marValue: '0x0005', mdrValue: '8', accValue: '8', mem5Value: '8'
+            }
+        ];
+        
+        function startVonNeumannAnimation() {
+            resetVonNeumannAnimation(false); // Soft reset
+            vonNeumannStep = 0;
+            executeVonNeumannStep(0);
+            document.getElementById('startAnimBtn').style.display = 'none';
+            document.getElementById('stepAnimBtn').style.display = 'inline-block';
+        }
+        
+        function stepVonNeumannAnimation() {
+            vonNeumannStep++;
+            if (vonNeumannStep < vonNeumannSteps.length) {
+                executeVonNeumannStep(vonNeumannStep);
+            }
+            if (vonNeumannStep >= vonNeumannSteps.length -1) {
+                document.getElementById('stepAnimBtn').style.display = 'none';
+                addXP(15, 'Architecture Explorer');
+            }
+        }
+        
+        function animateBus(busId, direction) {
+            const busElement = document.getElementById(busId);
+            if (!busElement) return;
+            const packet = busElement.querySelector('.packet');
+            if (!packet) return;
+
+            // Clone and replace to restart animation if it's already running
+            const newPacket = packet.cloneNode(true);
+            packet.parentNode.replaceChild(newPacket, packet);
+            
+            newPacket.classList.add(direction === 'forward' ? 'animate-forward' : 'animate-backward');
+        }
+
+        function executeVonNeumannStep(stepIndex) {
+            const step = vonNeumannSteps[stepIndex];
+            
+            // Update status
+            const statusText = `<strong>Step ${stepIndex + 1}/${vonNeumannSteps.length}:</strong> ${step.description}`;
+            document.getElementById('architectureStatus').innerHTML = `<span>${statusText}</span>`;
+            
+            // Clear all highlights
+            document.querySelectorAll('.architecture-component, .register-item, .bus, .mem-value').forEach(el => {
+                const parent = el.closest('.architecture-component, .register-item, .bus');
+                if (parent) {
+                    parent.style.borderColor = ''; // Reset to CSS default
+                    parent.style.boxShadow = '';
+                    parent.style.transform = '';
+                }
+                if (el.classList.contains('mem-value')) {
+                    el.style.backgroundColor = '';
+                    el.style.borderRadius = '';
+                    el.style.padding = '';
+                }
+            });
+            
+            // Apply highlights
+            step.highlight.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    const highlightTarget = element.classList.contains('mem-value') ? element : element.closest('.architecture-component, .register-item, .bus');
+                    if (highlightTarget) {
+                        highlightTarget.style.borderColor = '#fbbf24';
+                        highlightTarget.style.boxShadow = '0 0 20px rgba(251, 191, 36, 0.7)';
+                        highlightTarget.style.transform = 'scale(1.05)';
+                    }
+                     if (element.classList.contains('mem-value')) {
+                        element.style.backgroundColor = 'rgba(251, 191, 36, 0.2)';
+                        element.style.borderRadius = '3px';
+                        element.style.padding = '2px 4px';
+                    }
+                }
+            });
+            
+            // Update register values
+            if (step.pcValue) document.getElementById('pcValue').textContent = step.pcValue;
+            if (step.marValue) document.getElementById('marValue').textContent = step.marValue;
+            if (step.mdrValue) document.getElementById('mdrValue').textContent = step.mdrValue;
+            if (step.accValue) document.getElementById('accValue').textContent = step.accValue;
+            
+            // Update memory for STORE demonstration
+            if (step.mem5Value) {
+                document.getElementById('mem5').textContent = `[Data: ${step.mem5Value}]`;
+            }
+            
+            // Animate bus flow
+            if (step.busAnimation) {
+                setTimeout(() => animateBus(step.busAnimation.bus, step.busAnimation.direction), 50);
+            }
+        }
+        
+        function resetVonNeumannAnimation(fullReset = true) {
+            vonNeumannStep = 0;
+            document.getElementById('startAnimBtn').style.display = 'inline-block';
+            document.getElementById('stepAnimBtn').style.display = 'none';
+
+            // Clear highlights and transforms
+            document.querySelectorAll('.architecture-component, .register-item, .bus, .mem-value').forEach(el => {
+                el.style.borderColor = '';
+                el.style.boxShadow = '';
+                el.style.transform = '';
+                if (el.classList.contains('mem-value')) {
+                   el.style.backgroundColor = '';
+                   el.style.borderRadius = '';
+                   el.style.padding = '';
+                }
+            });
+            
+            // Reset register values
+            document.getElementById('pcValue').textContent = '0x0000';
+            document.getElementById('marValue').textContent = '----';
+            document.getElementById('mdrValue').textContent = '----';
+            document.getElementById('accValue').textContent = '0';
+            
+            if (fullReset) {
+                document.getElementById('architectureStatus').innerHTML = 
+                    '<span>Click "Start Animation" to see how it works!</span>';
+            }
+            
+            document.getElementById('mem5').textContent = '[Data: 0]';
+        }
+        
+        // Von Neumann Matching
+        function checkVonNeumannMatching() {
+            const dropZones = document.querySelectorAll('#section1 .drop-zone');
+            let correct = 0;
+            
+            dropZones.forEach(zone => {
+                const expected = zone.dataset.expected;
+                const dragItem = zone.querySelector('.drag-item');
+                
+                if (dragItem && dragItem.dataset.answer === expected) {
+                    zone.classList.add('correct');
+                    zone.classList.remove('incorrect');
+                    correct++;
+                } else {
+                    zone.classList.add('incorrect');
+                    zone.classList.remove('correct');
+                }
+            });
+            
+            const feedback = document.getElementById('vonNeumannFeedback');
+            feedback.innerHTML = `<p><strong>Score: ${correct}/4</strong></p>`;
+            
+            if (correct === 4) {
+                feedback.innerHTML += '<p style="color: var(--success-color);">🎉 Excellent! You understand Von Neumann components!</p>';
+                addXP(25, 'Von Neumann Expert');
+            }
+        }
+        
+        function resetVonNeumannMatching() {
+            const dragItems = document.getElementById('vonNeumannDragItems');
+            const items = document.querySelectorAll('#section1 .drag-item');
+            
+            items.forEach(item => {
+                dragItems.appendChild(item);
+            });
+            
+            document.querySelectorAll('#section1 .drop-zone').forEach(zone => {
+                zone.classList.remove('correct', 'incorrect');
+            });
+            
+            document.getElementById('vonNeumannFeedback').innerHTML = '';
+        }
+        
+        // Register Explorer
+        function explainRegister(type) {
+            // This function is for a different section, not implemented here.
+        }
+        
+        // Register Blanks Check
+        function checkRegisterBlanks() {
+            const answers = {
+                'blank1': ['program counter', 'pc'],
+                'blank2': ['accumulator', 'acc'],
+                'blank3': ['mdr', 'memory data register']
+            };
+            
+            let correct = 0;
+            const feedback = document.getElementById('blanksFeedback');
+            let feedbackHTML = '';
+            
+            for (let id in answers) {
+                const input = document.getElementById(id);
+                const userAnswer = input.value.toLowerCase().trim();
+                
+                if (answers[id].some(ans => userAnswer.includes(ans))) {
+                    correct++;
+                    input.style.borderColor = 'var(--success-color)';
+                } else {
+                    input.style.borderColor = 'var(--error-color)';
+                }
+            }
+            
+            feedbackHTML = `<p><strong>Score: ${correct}/3</strong></p>`;
+            if (correct === 3) {
+                feedbackHTML += '<p style="color: var(--success-color);">🎉 Perfect! You know your registers!</p>';
+                addXP(20, 'Register Master');
+            }
+            
+            feedback.innerHTML = feedbackHTML;
+        }
+        
+        // FDE Cycle Animation
+        let fdeInterval;
+        let fdeStage = 0;
+        
+        function startFDEAnimation() {
+            fdeStage = 0;
+            const stages = ['fetchStage', 'decodeStage', 'executeStage'];
+            const stageTexts = [
+                '📥 FETCH: Getting instruction "LOAD 5" from memory address 0x0000...',
+                '🔍 DECODE: Control Unit analyzing "LOAD 5" - means load value 5 into Accumulator...',
+                '⚡ EXECUTE: Loading value 5 into Accumulator register. Operation complete!'
+            ];
+            
+            const examples = [
+                { instruction: 'LOAD 5', pc: '0x0000', mar: '0x0000', mdr: 'LOAD 5', acc: '0' },
+                { instruction: 'LOAD 5', pc: '0x0001', mar: '0x0000', mdr: 'LOAD 5', acc: '0' },
+                { instruction: 'LOAD 5', pc: '0x0001', mar: '0x0000', mdr: 'LOAD 5', acc: '5' }
+            ];
+            
+            // Reset all stages
+            stages.forEach(stage => {
+                const el = document.getElementById(stage);
+                el.classList.remove('active');
+                el.style.transform = 'scale(1)';
+                el.style.borderColor = stage === 'fetchStage' ? '#f59e0b' : 
+                                     stage === 'decodeStage' ? '#10b981' : '#ef4444';
+            });
+            document.getElementById('fdeProgress').style.width = '0%';
+            
+            const isAutoPlay = document.getElementById('fdeAutoPlay').checked;
+            
+            function runStage() {
+                // Clear previous active
+                if (fdeStage > 0) {
+                    const prevStage = document.getElementById(stages[fdeStage - 1]);
+                    prevStage.classList.remove('active');
+                    prevStage.style.transform = 'scale(1)';
+                }
+                
+                if (fdeStage < stages.length) {
+                    const currentStage = document.getElementById(stages[fdeStage]);
+                    currentStage.classList.add('active');
+                    currentStage.style.transform = 'scale(1.02)';
+                    currentStage.style.borderWidth = '4px';
+                    currentStage.style.boxShadow = '0 0 30px rgba(255, 255, 255, 0.3)';
+                    
+                    // Update status
+                    document.getElementById('cycleStage').innerHTML = 
+                        `<span style="animation: fadeIn 0.5s ease-out;">${stageTexts[fdeStage]}</span>`;
+                    
+                    // Update current instruction
+                    const example = examples[fdeStage];
+                    document.getElementById('currentInstruction').textContent = example.instruction;
+                    
+                    // Update mini architecture view
+                    document.getElementById('miniPC').textContent = example.pc;
+                    document.getElementById('miniMAR').textContent = example.mar;
+                    document.getElementById('miniMDR').textContent = example.mdr;
+                    document.getElementById('miniACC').textContent = example.acc;
+                    
+                    // Animate the changing components
+                    if (fdeStage === 0) {
+                        document.getElementById('miniMAR').parentElement.style.transform = 'scale(1.1)';
+                        document.getElementById('miniMDR').parentElement.style.transform = 'scale(1.1)';
+                        setTimeout(() => {
+                            document.getElementById('miniMAR').parentElement.style.transform = 'scale(1)';
+                            document.getElementById('miniMDR').parentElement.style.transform = 'scale(1)';
+                        }, 500);
+                    } else if (fdeStage === 2) {
+                        document.getElementById('miniACC').parentElement.style.transform = 'scale(1.1)';
+                        document.getElementById('miniACC').parentElement.style.background = '#065f46';
+                        setTimeout(() => {
+                            document.getElementById('miniACC').parentElement.style.transform = 'scale(1)';
+                            document.getElementById('miniACC').parentElement.style.background = '#374151';
+                        }, 500);
+                    }
+                    
+                    // Update progress bar
+                    const progress = ((fdeStage + 1) / stages.length) * 100;
+                    document.getElementById('fdeProgress').style.width = progress + '%';
+                    
+                    // Highlight steps within the stage
+                    const stageEl = document.getElementById(stages[fdeStage]);
+                    const steps = stageEl.querySelectorAll('.step-item');
+                    steps.forEach((step, index) => {
+                        setTimeout(() => {
+                            step.style.background = 'rgba(255, 255, 255, 0.05)';
+                            step.style.borderRadius = '5px';
+                            step.style.padding = '5px 5px 5px 20px';
+                            step.style.transition = 'all 0.3s ease-out';
+                        }, index * 200);
+                    });
+                    
+                    fdeStage++;
+                    
+                    if (isAutoPlay && fdeStage < stages.length) {
+                        fdeInterval = setTimeout(runStage, 3000);
+                    }
+                } else {
+                    // Cycle complete
+                    document.getElementById('cycleStage').innerHTML = 
+                        '<span style="color: #10b981; font-size: 24px;">✅ Cycle Complete! The CPU has executed the LOAD instruction successfully.</span>';
+                    
+                    // Final celebration
+                    stages.forEach((stage, index) => {
+                        setTimeout(() => {
+                            const el = document.getElementById(stage);
+                            el.style.transform = 'scale(1.05)';
+                            el.style.borderColor = '#10b981';
+                            setTimeout(() => {
+                                el.style.transform = 'scale(1)';
+                                el.style.borderColor = stage === 'fetchStage' ? '#f59e0b' : 
+                                                     stage === 'decodeStage' ? '#10b981' : '#ef4444';
+                            }, 300);
+                        }, index * 150);
+                    });
+                    
+                    addXP(20, 'FDE Cycle Master');
+                }
+            }
+            
+            runStage();
+        }
+        
+        function resetFDEAnimation() {
+            clearTimeout(fdeInterval);
+            fdeStage = 0;
+            
+            ['fetchStage', 'decodeStage', 'executeStage'].forEach(stage => {
+                const el = document.getElementById(stage);
+                el.classList.remove('active');
+                el.style.transform = 'scale(1)';
+                el.style.borderWidth = '3px';
+                el.style.boxShadow = '';
+                el.style.borderColor = stage === 'fetchStage' ? '#f59e0b' : 
+                                     stage === 'decodeStage' ? '#10b981' : '#ef4444';
+                
+                // Reset step highlights
+                el.querySelectorAll('.step-item').forEach(step => {
+                    step.style.background = '';
+                    step.style.padding = '0 0 0 20px';
+                });
+            });
+            
+            document.getElementById('cycleStage').innerHTML = '<span>🎯 Ready to start the Fetch-Decode-Execute cycle...</span>';
+            document.getElementById('fdeProgress').style.width = '0%';
+            
+            // Reset current instruction
+            document.getElementById('currentInstruction').textContent = 'Ready to start...';
+            
+            // Reset mini architecture view
+            document.getElementById('miniPC').textContent = '0x0000';
+            document.getElementById('miniMAR').textContent = '----';
+            document.getElementById('miniMDR').textContent = '----';
+            document.getElementById('miniACC').textContent = '0';
+            document.getElementById('miniMem').textContent = 'LOAD 5';
+            
+            // Reset component styles
+            ['miniPC', 'miniMAR', 'miniMDR', 'miniACC'].forEach(id => {
+                const el = document.getElementById(id).parentElement;
+                el.style.transform = 'scale(1)';
+                el.style.background = '#374151';
+            });
+        }
+        
+        // FDE Sequence Check
+        function checkFDESequence() {
+            const dropZones = document.querySelectorAll('#fdeDropZones .drop-zone');
+            let correct = 0;
+            
+            dropZones.forEach(zone => {
+                const expectedOrder = zone.dataset.order;
+                const dragItem = zone.querySelector('.drag-item');
+                
+                if (dragItem && dragItem.dataset.order === expectedOrder) {
+                    zone.classList.add('correct');
+                    zone.classList.remove('incorrect');
+                    correct++;
+                } else {
+                    zone.classList.add('incorrect');
+                    zone.classList.remove('correct');
+                }
+            });
+            
+            const feedback = document.getElementById('fdeSequenceFeedback');
+            feedback.innerHTML = `<p><strong>Score: ${correct}/5</strong></p>`;
+            
+            if (correct === 5) {
+                feedback.innerHTML += '<p style="color: var(--success-color);">🎉 Perfect sequence! You understand the FDE cycle!</p>';
+                addXP(30, 'FDE Sequencer');
+            } else {
+                feedback.innerHTML += '<p>Remember: PC → Fetch → Decode → Execute → Increment PC</p>';
+            }
+        }
+        
+        function resetFDESequence() {
+            const dragItems = document.getElementById('fdeSequenceItems');
+            const items = document.querySelectorAll('#section3 .drag-item');
+            
+            items.forEach(item => {
+                dragItems.appendChild(item);
+            });
+            
+            document.querySelectorAll('#fdeDropZones .drop-zone').forEach(zone => {
+                zone.classList.remove('correct', 'incorrect');
+            });
+            
+            document.getElementById('fdeSequenceFeedback').innerHTML = '';
+        }
+        
+        // Bus Animation
+        function showBusAnimation(busType) {
+            const animations = {
+                'address': '🏠 Address Bus: Carries memory addresses from CPU to RAM. One-way communication.',
+                'data': '📦 Data Bus: Carries actual data and instructions. Two-way communication.',
+                'control': '🎛️ Control Bus: Carries control signals like read/write commands. Two-way communication.'
+            };
+            
+            document.getElementById('busAnimation').innerHTML = animations[busType];
+            addXP(5, 'Bus Explorer');
+        }
+        
+        // Quiz Functions
+        function selectQuizOption(element, answer) {
+            // Clear other selections
+            element.parentElement.querySelectorAll('.quiz-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            element.dataset.selected = answer;
+        }
+        
+        function checkCPURAMQuiz() {
+            const selected = document.querySelector('#cpuRamQuiz .quiz-option.selected');
+            const feedback = document.getElementById('cpuRamQuizFeedback');
+            
+            if (!selected) {
+                feedback.innerHTML = '<p>Please select an answer!</p>';
+                return;
+            }
+            
+            if (selected.dataset.selected === 'data') {
+                selected.classList.add('correct');
+                feedback.innerHTML = '<p style="color: var(--success-color);">✓ Correct! The Data Bus carries instructions and data.</p>';
+                addXP(10, 'Bus Expert');
+            } else {
+                selected.classList.add('incorrect');
+                feedback.innerHTML = '<p style="color: var(--error-color);">✗ Not quite. The Data Bus carries the actual data and instructions.</p>';
+            }
+        }
+        
+        // Mark Scheme Reveal
+        function revealMarkScheme(questionNum) {
+            const textarea = document.getElementById(`practiceQ${questionNum}`);
+            const predictedMarks = document.getElementById(`predictedMarks${questionNum}`);
+            const markScheme = document.getElementById(`markScheme${questionNum}`);
+            
+            // Check if answer is sufficient
+            const wordCount = textarea.value.trim().split(/\s+/).length;
+            const minWords = questionNum === 1 ? 30 : 50;
+            
+            if (wordCount < minWords) {
+                alert(`Please write a more detailed answer (at least ${minWords} words) before viewing the mark scheme.`);
+                return;
+            }
+            
+            if (!predictedMarks.value) {
+                alert('Please enter your predicted marks first.');
+                return;
+            }
+            
+            markScheme.classList.add('revealed');
+            addXP(20, `Question ${questionNum} Attempted`);
+            
+            // Check for keywords and award bonus XP
+            const keywords = questionNum === 1 ? 
+                ['stored', 'program', 'memory', 'instructions', 'data'] :
+                ['fetch', 'decode', 'execute', 'pc', 'mar', 'mdr', 'control unit'];
+            
+            let keywordsFound = 0;
+            keywords.forEach(keyword => {
+                if (textarea.value.toLowerCase().includes(keyword)) {
+                    keywordsFound++;
+                }
+            });
+            
+            if (keywordsFound >= keywords.length * 0.7) {
+                addXP(10, 'Keyword Master');
+            }
+        }
+        
+        // Canvas Drawing
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+        
+        function stopDrawing() {
+            isDrawing = false;
+        }
+        
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        
+        canvas.addEventListener('touchstart', startDrawing, {passive: false});
+        canvas.addEventListener('touchmove', draw, {passive: false});
+        canvas.addEventListener('touchend', stopDrawing);
+        
+        // Extension Activities
+        function submitExtension(num) {
+            const textarea = document.getElementById(`extensionAnswer${num}`);
+            const wordCount = textarea.value.trim().split(/\s+/).length;
+            const feedback = document.getElementById('extensionFeedback');
+            
+            if (wordCount < 50) {
+                feedback.innerHTML = '<p>Please provide a more detailed response (at least 50 words).</p>';
+                return;
+            }
+            
+            feedback.innerHTML = '<p style="color: var(--success-color);">🌟 Excellent extension work! You\'re going beyond the specification!</p>';
+            addXP(40, `Extension ${num} Complete`);
+        }
+        
+        // Summary Quiz Initialization
+        function initializeSummaryQuiz() {
+            quizQuestions = [
+                {
+                    question: "What is the stored program concept?",
+                    options: [
+                        "Programs are stored on hard drives",
+                        "Instructions and data are stored in the same memory",
+                        "Programs are stored in ROM",
+                        "Instructions are stored separately from data"
+                    ],
+                    correct: 1
+                },
+                {
+                    question: "Which register holds the address of the next instruction?",
+                    options: ["MAR", "MDR", "Program Counter", "Accumulator"],
+                    correct: 2
+                },
+                {
+                    question: "What does the ALU do?",
+                    options: [
+                        "Stores data permanently",
+                        "Performs mathematical and logical operations",
+                        "Controls data flow",
+                        "Fetches instructions"
+                    ],
+                    correct: 1
+                },
+                {
+                    question: "In which order does the FDE cycle occur?",
+                    options: [
+                        "Execute, Decode, Fetch",
+                        "Decode, Fetch, Execute",
+                        "Fetch, Decode, Execute",
+                        "Fetch, Execute, Decode"
+                    ],
+                    correct: 2
+                },
+                {
+                    question: "What type of memory is cache?",
+                    options: [
+                        "Slow memory in RAM",
+                        "Fast memory on the CPU",
+                        "Permanent storage",
+                        "Virtual memory"
+                    ],
+                    correct: 1
+                },
+                {
+                    question: "Which bus carries control signals?",
+                    options: ["Address Bus", "Data Bus", "Control Bus", "System Bus"],
+                    correct: 2
+                },
+                {
+                    question: "What does MDR stand for?",
+                    options: [
+                        "Memory Data Register",
+                        "Memory Direct Register",
+                        "Main Data Register",
+                        "Memory Decode Register"
+                    ],
+                    correct: 0
+                },
+                {
+                    question: "Who invented the architecture we studied?",
+                    options: ["Alan Turing", "Charles Babbage", "John von Neumann", "Grace Hopper"],
+                    correct: 2
+                }
+            ];
+            
+            // Shuffle questions
+            quizQuestions = quizQuestions.sort(() => Math.random() - 0.5);
+            
+            // Display questions
+            const quizContainer = document.getElementById('summaryQuiz');
+            quizContainer.innerHTML = '';
+            
+            quizQuestions.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'quiz-question';
+                questionDiv.innerHTML = `
+                    <h4>Question ${index + 1}: ${q.question}</h4>
+                    <div class="quiz-options">
+                        ${q.options.map((opt, i) => `
+                            <div class="quiz-option" onclick="selectSummaryAnswer(${index}, ${i})">
+                                ${opt}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                quizContainer.appendChild(questionDiv);
+            });
+            
+            document.getElementById('submitQuizButton').style.display = 'block';
+        }
+        
+        function selectSummaryAnswer(questionIndex, optionIndex) {
+            currentQuizAnswers[questionIndex] = optionIndex;
+            
+            // Update visual selection
+            const questionDiv = document.querySelectorAll('.quiz-question')[index];
+            questionDiv.querySelectorAll('.quiz-option').forEach((opt, i) => {
+                opt.classList.toggle('selected', i === optionIndex);
+            });
+        }
+        
+        function checkSummaryQuiz() {
+            let correct = 0;
+            const results = document.getElementById('quizResults');
+            
+            quizQuestions.forEach((q, index) => {
+                const selectedAnswer = currentQuizAnswers[index];
+                const questionDiv = document.querySelectorAll('.quiz-question')[index];
+                const options = questionDiv.querySelectorAll('.quiz-option');
+                
+                if (selectedAnswer === q.correct) {
+                    correct++;
+                    options[selectedAnswer].classList.add('correct');
+                } else if (selectedAnswer !== undefined) {
+                    options[selectedAnswer].classList.add('incorrect');
+                    options[q.correct].classList.add('correct');
+                }
+            });
+            
+            const percentage = Math.round((correct / quizQuestions.length) * 100);
+            results.innerHTML = `
+                <h3>Quiz Results: ${correct}/${quizQuestions.length} (${percentage}%)</h3>
+                <p>${percentage >= 80 ? '🎉 Excellent work!' : percentage >= 60 ? '👍 Good effort!' : '📚 Keep studying!'}</p>
+            `;
+            
+            if (percentage >= 80) {
+                addXP(50, 'Quiz Master');
+            } else if (percentage >= 60) {
+                addXP(30, 'Quiz Completer');
+            } else {
+                addXP(20, 'Quiz Attempter');
+            }
+            
+            if (level >= 5) {
+                showAchievement('🏆 MAXIMUM LEVEL ACHIEVED! You are a Von Neumann Master!', 0);
+            }
+        }
+        
+        // Anti-paste mechanism
+        document.addEventListener('DOMContentLoaded', function() {
+            const noPasteElements = document.querySelectorAll('.no-paste');
+            
+            noPasteElements.forEach(element => {
+                element.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    
+                    if (!pasteDetected) {
+                        pasteDetected = true;
+                        document.getElementById('shameMessage').style.display = 'block';
+                        document.body.style.backgroundColor = '#ff000020';
+                        
+                        // Make the shame permanent
+                        setTimeout(() => {
+                            document.body.classList.add('paste-shame');
+                        }, 100);
+                    }
+                    
+                    element.classList.add('paste-attempted');
+                    setTimeout(() => {
+                        element.classList.remove('paste-attempted');
+                    }, 3000);
+                    
+                    return false;
+                });
+                
+                // Also prevent context menu
+                element.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    return false;
+                });
+            });
+            
+            // Initialize drag and drop
+            initializeDragAndDrop();
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                    const activeSection = document.querySelector('.section.active');
+                    const sections = Array.from(document.querySelectorAll('.section'));
+                    const currentIndex = sections.indexOf(activeSection);
+                    
+                    let newIndex;
+                    if (e.key === 'ArrowLeft') {
+                        newIndex = Math.max(0, currentIndex - 1);
+                    } else {
+                        newIndex = Math.min(sections.length - 1, currentIndex + 1);
+                    }
+                    
+                    if (newIndex !== currentIndex) {
+                        showSection(sections[newIndex].id);
+                        document.querySelectorAll('.nav-button')[newIndex].classList.add('active');
+                    }
+                }
+            });
+            
+            // Easter egg
+            let konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+            let konamiIndex = 0;
+            
+            document.addEventListener('keydown', function(e) {
+                if (e.key === konamiCode[konamiIndex]) {
+                    konamiIndex++;
+                    if (konamiIndex === konamiCode.length) {
+                        addXP(100, '🎮 KONAMI CODE ACTIVATED!');
+                        konamiIndex = 0;
+                    }
+                } else {
+                    konamiIndex = 0;
+                }
+            });
+        });
+        
+        // Ensure proper touch handling for mobile
+        if ('ontouchstart' in window) {
+            document.body.classList.add('touch-device');
+        }
+        
+        // Service worker for offline capability (optional enhancement)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+
+        // --- MGS Platform Integration Script ---
+
+        // FIX: Add message listener to handle communication from the parent window
+        window.addEventListener('message', (event) => {
+            // A basic security check
+            if (event.source !== parent) {
+                return;
+            }
+
+            const message = event.data;
+
+            if (message.type === 'getWorksheetState') {
+                console.log("Worksheet received request for state from parent.");
+                const currentState = getWorksheetState();
+                // Post the state back to the parent window
+                parent.postMessage({ type: 'worksheetState', payload: currentState }, event.origin);
+            }
+
+            if (message.type === 'loadWorksheetState') {
+                console.log("Worksheet received state to load from parent.", message.payload);
+                loadWorksheetState(message.payload);
+            }
+        });
+
+
+        /**
+         * Gathers all the current answers and progress from the worksheet.
+         * @returns {object} An object containing the student's work.
+         */
+        function getWorksheetState() {
+            console.log("getWorksheetState called inside worksheet.");
+            const state = {
+                starterActivityScore: document.getElementById('starterFeedback')?.textContent || '',
+                registerBlanks: {
+                    blank1: document.getElementById('blank1')?.value || '',
+                    blank2: document.getElementById('blank2')?.value || '',
+                    blank3: document.getElementById('blank3')?.value || '',
+                },
+                fdeSequenceOrder: Array.from(document.querySelectorAll('#fdeDropZones .drag-item')).map(item => item.textContent),
+                xp: xp,
+                level: level,
+                achievements: Array.from(achievements)
+            };
+            
+            console.log("Returning state:", state);
+            return state;
+        }
+
+        /**
+         * Takes a saved state object and restores the worksheet to that state.
+         * @param {object} savedState - The object containing the student's saved work.
+         */
+        function loadWorksheetState(savedState) {
+            console.log("loadWorksheetState called inside worksheet with:", savedState);
+            
+            if (!savedState) return;
+
+            if (savedState.registerBlanks) {
+                document.getElementById('blank1').value = savedState.registerBlanks.blank1 || '';
+                document.getElementById('blank2').value = savedState.registerBlanks.blank2 || '';
+                document.getElementById('blank3').value = savedState.registerBlanks.blank3 || '';
+                checkRegisterBlanks(); // Re-check to apply styling
+            }
+            
+            if (savedState.xp) {
+                xp = savedState.xp;
+                level = savedState.level;
+                achievements = new Set(savedState.achievements || []);
+                updateXPBar();
+            }
+        }
+    </script>
+</body>
+</html>

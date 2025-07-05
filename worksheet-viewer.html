@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worksheet - MGS CS Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #worksheetFrame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="./student-dashboard.html" class="text-indigo-600 hover:text-indigo-800 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                        Back to Dashboard
+                    </a>
+                </div>
+                <div id="worksheetTitle" class="hidden sm:block text-lg font-semibold text-gray-700">
+                    Loading Worksheet...
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="saveStatus" class="text-sm text-gray-500"></div>
+                     <button id="saveProgressButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg disabled:bg-blue-400">Save Progress</button>
+                    <button id="submitWorkButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded-lg disabled:bg-green-400">Mark as Complete</button>
+                    <button id="logoutButton" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-sm">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content: Iframe takes up the full view -->
+    <main id="worksheetContainer" class="h-[calc(100vh-64px)] bg-white">
+        <div id="worksheetLoading" class="h-full flex items-center justify-center">
+            <p class="text-gray-500">Loading worksheet content...</p>
+        </div>
+        <iframe id="worksheetFrame" class="hidden"></iframe>
+    </main>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB5J6kLg1N8Sul_zE_wHo1OiuDDwsuix2A",
+            authDomain: "mgscompsci-dda86.firebaseapp.com",
+            projectId: "mgscompsci-dda86",
+            storageBucket: "mgscompsci-dda86.firebasestorage.app",
+            messagingSenderId: "850907435330",
+            appId: "1:850907435330:web:735c3d1a5e4a483a9238db"
+        };
+
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("CRITICAL: Firebase initialization failed.", e);
+            document.body.innerHTML = '<p class="text-red-500 text-center p-8">Error connecting to platform.</p>';
+        }
+
+        const logoutButton = document.getElementById('logoutButton');
+        const worksheetTitle = document.getElementById('worksheetTitle');
+        const worksheetFrame = document.getElementById('worksheetFrame');
+        const worksheetLoading = document.getElementById('worksheetLoading');
+        const saveProgressButton = document.getElementById('saveProgressButton');
+        const submitWorkButton = document.getElementById('submitWorkButton');
+        const saveStatus = document.getElementById('saveStatus');
+
+        let currentAssignmentId = null;
+        let resolveWorksheetState = null;
+        let autoSaveInterval = null; // Variable to hold the interval ID
+
+        // --- Cross-Origin Communication Handler ---
+        window.addEventListener('message', (event) => {
+            if (!worksheetFrame.src.startsWith(event.origin)) {
+                 console.warn("Message received from unexpected origin:", event.origin);
+                 return;
+            }
+            if (event.data && event.data.type === 'worksheetStateResponse' && resolveWorksheetState) {
+                resolveWorksheetState(event.data.payload);
+                resolveWorksheetState = null;
+            }
+        });
+
+        const studentUID = sessionStorage.getItem('mgs_student_uid');
+        if (!studentUID) {
+            window.location.href = './student-login.html';
+        } else {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentAssignmentId = urlParams.get('id');
+            if (currentAssignmentId) {
+                signInAnonymously(auth)
+                    .then(() => loadWorksheetData(currentAssignmentId))
+                    .catch(err => console.error("Anonymous auth error", err));
+            } else {
+                document.body.innerHTML = '<p class="text-red-500 text-center p-8">Error: No assignment ID provided.</p>';
+            }
+        }
+
+        async function loadWorksheetData(assignmentId) {
+            try {
+                const assignmentRef = doc(db, "assignments", assignmentId);
+                const assignmentSnap = await getDoc(assignmentRef);
+                if (!assignmentSnap.exists()) throw new Error("Assignment not found.");
+                
+                const assignmentData = assignmentSnap.data();
+                
+                const worksheetRef = doc(db, "worksheets", assignmentData.worksheetId);
+                const worksheetSnap = await getDoc(worksheetRef);
+                if (!worksheetSnap.exists()) throw new Error("Worksheet content not found.");
+                
+                const worksheetData = worksheetSnap.data();
+                worksheetTitle.textContent = worksheetData.title;
+                worksheetFrame.src = worksheetData.worksheetURL;
+
+                worksheetFrame.onload = () => {
+                    worksheetLoading.style.display = 'none';
+                    worksheetFrame.classList.remove('hidden');
+                    
+                    if (assignmentData.studentWork) {
+                        console.log("Found saved state, sending to worksheet to be loaded.");
+                        worksheetFrame.contentWindow.postMessage({ 
+                            type: 'loadWorksheetState', 
+                            payload: assignmentData.studentWork 
+                        }, '*');
+                    }
+
+                    // Start auto-save interval after the worksheet is fully loaded
+                    if (autoSaveInterval) clearInterval(autoSaveInterval); // Clear any existing interval
+                    autoSaveInterval = setInterval(() => {
+                        saveWork('In Progress', true); // Call saveWork with the auto-save flag
+                    }, 30000); // 30000 milliseconds = 30 seconds
+                };
+
+            } catch (error) {
+                console.error("Error loading worksheet data:", error);
+                document.getElementById('worksheetContainer').innerHTML = `<p class="text-red-500 text-center p-8">${error.message}</p>`;
+            }
+        }
+        
+        // --- STATE MANAGEMENT ---
+
+        function getWorksheetStateFromIframe() {
+            return new Promise((resolve, reject) => {
+                resolveWorksheetState = resolve;
+                worksheetFrame.contentWindow.postMessage({ type: 'getWorksheetState' }, '*');
+
+                // Reject the promise if the worksheet doesn't respond in time.
+                setTimeout(() => {
+                    if (resolveWorksheetState) {
+                        reject(new Error("Worksheet did not respond. It may be missing the required integration script."));
+                        resolveWorksheetState = null;
+                    }
+                }, 1000);
+            });
+        }
+
+        async function saveWork(newStatus, isAutoSave = false) {
+            if (!currentAssignmentId) return;
+
+            const buttonToUpdate = newStatus === 'Completed' ? submitWorkButton : saveProgressButton;
+            const originalText = buttonToUpdate.textContent;
+            
+            if (!isAutoSave) {
+                buttonToUpdate.disabled = true;
+                buttonToUpdate.textContent = 'Saving...';
+            }
+            saveStatus.textContent = 'Saving...';
+
+            try {
+                const studentWorkData = await getWorksheetStateFromIframe();
+
+                const assignmentRef = doc(db, "assignments", currentAssignmentId);
+                await updateDoc(assignmentRef, {
+                    studentWork: studentWorkData,
+                    status: newStatus
+                });
+
+                const saveTime = new Date().toLocaleTimeString();
+                saveStatus.textContent = isAutoSave ? `Auto-saved at ${saveTime}` : `Saved at ${saveTime}`;
+
+                if (newStatus === 'Completed') {
+                    clearInterval(autoSaveInterval); // Stop auto-saving after submission
+                    alert('Your work has been submitted successfully!');
+                    window.location.href = './student-dashboard.html';
+                }
+            } catch (error) {
+                console.error("Error saving work:", error);
+                saveStatus.textContent = "Error saving.";
+                if (!isAutoSave) {
+                    alert(`Could not save progress. ${error.message}`);
+                }
+            } finally {
+                if (!isAutoSave) {
+                    buttonToUpdate.disabled = false;
+                    buttonToUpdate.textContent = originalText;
+                }
+                setTimeout(() => { 
+                    if (saveStatus.textContent !== "Error saving.") {
+                        saveStatus.textContent = '';
+                    }
+                }, 3000);
+            }
+        }
+
+        saveProgressButton.addEventListener('click', () => saveWork('In Progress', false));
+        submitWorkButton.addEventListener('click', () => saveWork('Completed', false));
+        logoutButton.addEventListener('click', () => {
+            clearInterval(autoSaveInterval); // Stop auto-saving on logout
+            sessionStorage.removeItem('mgs_student_uid');
+            sessionStorage.removeItem('mgs_student_username');
+            signOut(auth).finally(() => window.location.href = './student-login.html');
+        });
+
+        // Also clear interval when the page is closed or navigated away from
+        window.addEventListener('beforeunload', () => {
+            if (autoSaveInterval) {
+                clearInterval(autoSaveInterval);
+            }
+        });
+
+    </script>
+</body>
+</html>

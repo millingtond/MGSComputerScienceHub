@@ -1,0 +1,48 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isTeacher() {
+      return exists(/databases/$(database)/documents/teachers/$(request.auth.uid));
+    }
+
+    match /teachers/{teacherId} {
+      allow read, write: if request.auth.uid == teacherId;
+    }
+
+    match /classes/{classId} {
+      allow read, list: if isTeacher();
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+      allow update, delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+    }
+
+    match /artifacts/{appId}/public/data/students/{studentId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isTeacher() && get(/databases/$(database)/documents/classes/$(request.resource.data.classId)).data.teacherId == request.auth.uid;
+    }
+
+    match /worksheets/{worksheetId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isTeacher();
+    }
+
+    match /assignments/{assignmentId} {
+      allow list, read: if request.auth != null;
+      allow create: if isTeacher();
+      allow update: if (request.auth != null && request.writeFields.hasOnly(['studentWork', 'status'])) || 
+                      (isTeacher() && get(/databases/$(database)/documents/classes/$(resource.data.classId)).data.teacherId == request.auth.uid);
+      allow delete: if isTeacher();
+    }
+
+    // NEW: Rules for the announcements collection
+    match /announcements/{announcementId} {
+      // Any authenticated user can read announcements (students need this)
+      allow read: if request.auth != null;
+      // Only a teacher can create an announcement for a class they own.
+      allow create: if isTeacher() && get(/databases/$(database)/documents/classes/$(request.resource.data.classId)).data.teacherId == request.auth.uid;
+      // Only the teacher who created the announcement can delete it.
+      allow delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+    }
+  }
+}

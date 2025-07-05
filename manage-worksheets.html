@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Worksheets - MGS CS Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="./teacher-dashboard.html" class="text-indigo-600 hover:text-indigo-800 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                        Back to Dashboard
+                    </a>
+                </div>
+                <div class="flex items-center">
+                    <button id="logoutButton" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-sm">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <!-- Upload Form Section -->
+            <div>
+                <h2 class="text-3xl font-semibold text-gray-800 mb-6">Upload New Worksheet</h2>
+                <div class="bg-white p-8 rounded-lg shadow-md">
+                    <form id="uploadWorksheetForm" class="space-y-6">
+                        <div>
+                            <label for="worksheetTitle" class="block text-sm font-medium text-gray-700">Worksheet Title</label>
+                            <input type="text" id="worksheetTitle" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., CPU Performance Factors">
+                        </div>
+                        <div>
+                            <label for="worksheetTopic" class="block text-sm font-medium text-gray-700">Topic</label>
+                            <input type="text" id="worksheetTopic" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 1.2 CPU Performance">
+                        </div>
+                        <div>
+                            <label for="worksheetFile" class="block text-sm font-medium text-gray-700">Worksheet File</label>
+                            <input type="file" id="worksheetFile" required accept=".html" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            <p class="mt-1 text-xs text-gray-500">Please select the main HTML file for the worksheet.</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="overwriteCheckbox" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="overwriteCheckbox" class="ml-2 block text-sm text-gray-900">Overwrite existing worksheet with the same title</label>
+                        </div>
+                        <div>
+                            <button type="submit" id="uploadButton" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400">
+                                Upload Worksheet
+                            </button>
+                        </div>
+                    </form>
+                    <div id="uploadStatus" class="mt-4 text-center"></div>
+                </div>
+            </div>
+
+            <!-- Existing Worksheets Section -->
+            <div>
+                <h2 class="text-3xl font-semibold text-gray-800 mb-6">Existing Worksheets</h2>
+                <div id="worksheetListContainer" class="bg-white rounded-lg shadow overflow-hidden">
+                    <!-- Table will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteConfirmationModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center hidden z-50">
+        <div class="relative mx-auto p-8 border w-full max-w-md shadow-lg rounded-xl bg-white">
+            <div class="text-center">
+                <h3 class="text-2xl font-bold text-gray-900">Confirm Deletion</h3>
+                <p id="deleteModalText" class="text-gray-600 mt-2 mb-6"></p>
+                <div class="flex items-center justify-center space-x-4">
+                    <button id="cancelDeleteButton" type="button" class="py-2 px-6 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancel</button>
+                    <button id="confirmDeleteButton" class="py-2 px-6 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB5J6kLg1N8Sul_zE_wHo1OiuDDwsuix2A",
+            authDomain: "mgscompsci-dda86.firebaseapp.com",
+            projectId: "mgscompsci-dda86",
+            storageBucket: "mgscompsci-dda86.firebasestorage.app",
+            messagingSenderId: "850907435330",
+            appId: "1:850907435330:web:735c3d1a5e4a483a9238db"
+        };
+
+        let app, auth, db, storage;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            storage = getStorage(app);
+        } catch (e) {
+            console.error("CRITICAL: Firebase initialization failed.", e);
+            document.body.innerHTML = '<div class="text-red-500 text-center p-8">Error connecting to platform.</div>';
+        }
+
+        const logoutButton = document.getElementById('logoutButton');
+        const uploadWorksheetForm = document.getElementById('uploadWorksheetForm');
+        const uploadButton = document.getElementById('uploadButton');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const worksheetListContainer = document.getElementById('worksheetListContainer');
+        const deleteConfirmationModal = document.getElementById('deleteConfirmationModal');
+        const cancelDeleteButton = document.getElementById('cancelDeleteButton');
+        const confirmDeleteButton = document.getElementById('confirmDeleteButton');
+        const deleteModalText = document.getElementById('deleteModalText');
+
+        let worksheetToDelete = null;
+
+        async function fetchAndDisplayWorksheets() {
+            worksheetListContainer.innerHTML = `<div class="p-6 text-center text-gray-500">Loading...</div>`;
+            try {
+                const worksheetsRef = collection(db, "worksheets");
+                const querySnapshot = await getDocs(worksheetsRef);
+
+                let tableHtml = `<table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Topic</th>
+                    <th scope="col" class="relative px-6 py-3"><span class="sr-only">Actions</span></th>
+                    </tr></thead><tbody class="bg-white divide-y divide-gray-200">`;
+                
+                if (querySnapshot.empty) {
+                    tableHtml += `<tr><td colspan="3" class="px-6 py-4 text-center text-gray-500">No worksheets found.</td></tr>`;
+                } else {
+                    querySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        tableHtml += `<tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${data.title}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${data.topic}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button data-id="${doc.id}" data-url="${data.worksheetURL}" data-title="${data.title}" class="delete-worksheet-btn text-red-600 hover:text-red-900">Delete</button>
+                            </td>
+                        </tr>`;
+                    });
+                }
+                tableHtml += `</tbody></table>`;
+                worksheetListContainer.innerHTML = tableHtml;
+            } catch (error) {
+                console.error("Error fetching worksheets:", error);
+                worksheetListContainer.innerHTML = `<div class="p-6 text-center text-red-500">Error: ${error.message}</div>`;
+            }
+        }
+
+        function openDeleteModal(id, url, title) {
+            worksheetToDelete = { id, url, title };
+            deleteModalText.textContent = `Are you sure you want to delete the worksheet "${title}"? This will also delete all student assignments for this worksheet. This action cannot be undone.`;
+            deleteConfirmationModal.classList.remove('hidden');
+        }
+
+        async function handleDeleteWorksheet() {
+            if (!worksheetToDelete) return;
+
+            confirmDeleteButton.disabled = true;
+            confirmDeleteButton.textContent = 'Deleting...';
+            
+            try {
+                const batch = writeBatch(db);
+
+                // 1. Find and delete all assignments related to this worksheet
+                const assignmentsRef = collection(db, "assignments");
+                const q = query(assignmentsRef, where("worksheetId", "==", worksheetToDelete.id));
+                const assignmentsSnapshot = await getDocs(q);
+                assignmentsSnapshot.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                console.log(`Found ${assignmentsSnapshot.size} assignments to delete.`);
+
+                // 2. Delete the worksheet document itself
+                const worksheetRef = doc(db, "worksheets", worksheetToDelete.id);
+                batch.delete(worksheetRef);
+
+                // 3. Commit all Firestore deletions
+                await batch.commit();
+                console.log("Firestore documents deleted.");
+
+                // 4. Delete the file from Cloud Storage
+                if (worksheetToDelete.url) {
+                    const fileRef = ref(storage, worksheetToDelete.url);
+                    await deleteObject(fileRef);
+                    console.log("Storage file deleted.");
+                }
+
+                alert(`Worksheet "${worksheetToDelete.title}" and all its assignments have been deleted.`);
+                fetchAndDisplayWorksheets();
+
+            } catch (error) {
+                console.error("Deletion failed:", error);
+                alert(`Deletion failed: ${error.message}`);
+            } finally {
+                deleteConfirmationModal.classList.add('hidden');
+                confirmDeleteButton.disabled = false;
+                confirmDeleteButton.textContent = 'Delete';
+                worksheetToDelete = null;
+            }
+        }
+
+        async function handleWorksheetUpload(event) {
+            event.preventDefault();
+            uploadButton.disabled = true;
+            uploadButton.textContent = 'Uploading...';
+            uploadStatus.textContent = 'Starting...';
+            uploadStatus.className = 'text-sm text-gray-600';
+
+            const title = document.getElementById('worksheetTitle').value;
+            const topic = document.getElementById('worksheetTopic').value;
+            const file = document.getElementById('worksheetFile').files[0];
+            const shouldOverwrite = document.getElementById('overwriteCheckbox').checked;
+
+            if (!file || !title || !topic) {
+                // ... (error handling)
+                return;
+            }
+
+            try {
+                let existingWorksheet = null;
+                if (shouldOverwrite) {
+                    uploadStatus.textContent = 'Checking for existing worksheet...';
+                    const q = query(collection(db, "worksheets"), where("title", "==", title));
+                    const querySnapshot = await getDocs(q);
+                    if (!querySnapshot.empty) {
+                        existingWorksheet = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
+                        console.log(`Found existing worksheet to overwrite: ${existingWorksheet.id}`);
+                        // Delete old file from storage
+                        if (existingWorksheet.worksheetURL) {
+                            try {
+                                await deleteObject(ref(storage, existingWorksheet.worksheetURL));
+                                console.log("Old storage file deleted.");
+                            } catch (storageError) {
+                                console.warn("Could not delete old storage file (it may not exist):", storageError.code);
+                            }
+                        }
+                    }
+                }
+
+                // Upload new file to Storage
+                const uniqueId = self.crypto.randomUUID();
+                const storagePath = `worksheets/${uniqueId}-${file.name}`;
+                const storageRef = ref(storage, storagePath);
+                uploadStatus.textContent = 'Uploading file...';
+                const uploadResult = await uploadBytes(storageRef, file);
+                const downloadURL = await getDownloadURL(uploadResult.ref);
+
+                // Create or Update Firestore Record
+                if (existingWorksheet) {
+                    uploadStatus.textContent = 'Updating database entry...';
+                    const docRef = doc(db, "worksheets", existingWorksheet.id);
+                    await updateDoc(docRef, {
+                        topic: topic,
+                        worksheetURL: downloadURL,
+                        uploadedAt: serverTimestamp()
+                    });
+                } else {
+                    uploadStatus.textContent = 'Creating database entry...';
+                    await addDoc(collection(db, "worksheets"), {
+                        title: title,
+                        topic: topic,
+                        worksheetURL: downloadURL,
+                        uploadedAt: serverTimestamp()
+                    });
+                }
+
+                // Finalize
+                uploadStatus.textContent = 'Success! Worksheet processed.';
+                uploadStatus.className = 'text-sm text-green-600';
+                uploadWorksheetForm.reset();
+                fetchAndDisplayWorksheets();
+
+            } catch (error) {
+                console.error("Upload failed:", error);
+                uploadStatus.textContent = `Upload failed: ${error.message}`;
+                uploadStatus.className = 'text-sm text-red-600';
+            } finally {
+                uploadButton.disabled = false;
+                uploadButton.textContent = 'Upload Worksheet';
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                fetchAndDisplayWorksheets();
+            } else {
+                window.location.href = './teacher-login.html';
+            }
+        });
+
+        logoutButton.addEventListener('click', () => signOut(auth));
+        uploadWorksheetForm.addEventListener('submit', handleWorksheetUpload);
+        
+        worksheetListContainer.addEventListener('click', (event) => {
+            if (event.target.classList.contains('delete-worksheet-btn')) {
+                const id = event.target.dataset.id;
+                const url = event.target.dataset.url;
+                const title = event.target.dataset.title;
+                openDeleteModal(id, url, title);
+            }
+        });
+
+        cancelDeleteButton.addEventListener('click', () => deleteConfirmationModal.classList.add('hidden'));
+        confirmDeleteButton.addEventListener('click', handleDeleteWorksheet);
+
+    </script>
+</body>
+</html>

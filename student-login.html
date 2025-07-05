@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Login - MGS Computer Science</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-md p-8 space-y-8 bg-white rounded-2xl shadow-lg">
+        
+        <!-- Header Section -->
+        <div>
+            <h1 class="text-3xl font-bold text-center text-indigo-700">MGS CS Hub</h1>
+            <h2 class="mt-2 text-xl font-medium text-center text-gray-600">Student Portal Login</h2>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" class="mt-8 space-y-6">
+            <!-- Username Input -->
+            <div>
+                <label for="username" class="text-sm font-medium text-gray-700">Username</label>
+                <input id="username" name="username" type="text" autocomplete="username" required
+                    class="block w-full px-3 py-2 mt-1 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="e.g. swift-tree-eagle">
+            </div>
+
+            <!-- Password Input -->
+            <div>
+                <label for="password" class="text-sm font-medium text-gray-700">Password</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" required
+                    class="block w-full px-3 py-2 mt-1 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="••••••••">
+            </div>
+            
+            <!-- Error Message Display -->
+            <div id="errorMessage" class="hidden p-3 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                <!-- Error content will be inserted here by JavaScript -->
+            </div>
+
+            <!-- Submit Button -->
+            <div>
+                <button type="submit" id="submitButton"
+                    class="relative flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md group hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400 disabled:cursor-not-allowed">
+                    Sign in
+                </button>
+            </div>
+        </form>
+        
+        <div class="text-center">
+            <a href="./teacher-login.html" id="teacherLoginLink" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                Are you a teacher? Login here
+            </a>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // Import necessary Firebase functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+const firebaseConfig = {
+  apiKey: "AIzaSyB5J6kLg1N8Sul_zE_wHo1OiuDDwsuix2A",
+  authDomain: "mgscompsci-dda86.firebaseapp.com",
+  projectId: "mgscompsci-dda86",
+  storageBucket: "mgscompsci-dda86.firebasestorage.app",
+  messagingSenderId: "850907435330",
+  appId: "1:850907435330:web:735c3d1a5e4a483a9238db"
+};
+
+
+        const appId = 'default-app-id';
+
+
+        // --- App Initialization ---
+        let app;
+        let auth;
+        let db;
+
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            // setLogLevel('debug'); // Uncomment for detailed Firestore logs
+            console.log("Firebase initialized successfully.");
+        } catch (e) {
+            console.error("Error initializing Firebase:", e);
+            const errorMessageDiv = document.getElementById('errorMessage');
+            errorMessageDiv.textContent = 'Error connecting to the platform. Please contact support.';
+            errorMessageDiv.classList.remove('hidden');
+            // FIX: Removed illegal 'return' statement from the main script body.
+        }
+        
+        // --- DOM Element References ---
+        const loginForm = document.getElementById('loginForm');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const submitButton = document.getElementById('submitButton');
+        const errorMessageDiv = document.getElementById('errorMessage');
+
+        // --- Helper Functions ---
+        /**
+         * Hashes a string using the SHA-256 algorithm.
+         * @param {string} string - The string to hash.
+         * @returns {Promise<string>} A promise that resolves to the hex-encoded hash.
+         */
+        async function sha256(string) {
+            const utf8 = new TextEncoder().encode(string);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        }
+
+        // --- Main Login Logic ---
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault(); // Prevent the form from submitting the traditional way
+            
+            // Reset UI state
+            submitButton.disabled = true;
+            submitButton.textContent = 'Checking...';
+            errorMessageDiv.classList.add('hidden');
+
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!username || !password) {
+                errorMessageDiv.textContent = 'Username and password cannot be empty.';
+                errorMessageDiv.classList.remove('hidden');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Sign in';
+                return;
+            }
+            
+            try {
+                // Anonymously sign in to Firebase to get permissions to read the students collection
+                await signInAnonymously(auth);
+                console.log("Anonymous sign-in successful for query.");
+
+                // Create a query against the 'students' collection
+                const studentsRef = collection(db, `/artifacts/${appId}/public/data/students`);
+                const q = query(studentsRef, where("username", "==", username));
+
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    // No user found with that username
+                    throw new Error("Invalid username or password.");
+                }
+
+                let studentFound = false;
+                for (const doc of querySnapshot.docs) {
+                    const studentData = doc.data();
+                    const storedPasswordHash = studentData.password; // The hash from the database
+                    
+                    // Hash the password the user entered to compare it
+                    const enteredPasswordHash = await sha256(password);
+
+                    if (enteredPasswordHash === storedPasswordHash) {
+                        // Passwords match!
+                        studentFound = true;
+                        console.log("Login successful for student:", studentData.studentUID);
+                        
+                        // Store the student's unique ID in session storage to keep them logged in
+                        sessionStorage.setItem('mgs_student_uid', studentData.studentUID);
+                        sessionStorage.setItem('mgs_student_username', studentData.username);
+
+                        // Redirect to the student dashboard
+                        window.location.href = './student-dashboard.html';
+                        break; // Exit the loop
+                    }
+                }
+                
+                if (!studentFound) {
+                    // Username was found, but password was incorrect
+                    throw new Error("Invalid username or password.");
+                }
+
+            } catch (error) {
+                console.error("Login Error:", error);
+                errorMessageDiv.textContent = error.message;
+                errorMessageDiv.classList.remove('hidden');
+                
+                // Re-enable the form
+                submitButton.disabled = false;
+                submitButton.textContent = 'Sign in';
+            }
+        });
+
+    </script>
+</body>
+</html>

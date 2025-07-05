@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCSE CS Lesson: CPU Performance</title>
+    <style>
+        /* General Body & Font Styling */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Dyslexia-Friendly Font */
+        @font-face {
+            font-family: 'OpenDyslexic';
+            src: url('https://cdn.jsdelivr.net/npm/opendyslexic@2.0.2/build/font/OpenDyslexic-Regular.otf') format('opentype');
+        }
+
+        body.dyslexia-font {
+            font-family: 'OpenDyslexic', sans-serif;
+        }
+
+        /* High Contrast Mode */
+        body.high-contrast {
+            background-color: #000;
+            color: #fff;
+        }
+
+        body.high-contrast .worksheet-container, body.high-contrast .task-box, body.high-contrast .content-box, body.high-contrast nav, body.high-contrast .modal-content {
+            background-color: #111;
+            border-color: #fff;
+            color: #fff;
+        }
+        
+        body.high-contrast button, body.high-contrast .nav-btn, body.high-contrast .nav-link {
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #fff;
+        }
+        
+        body.high-contrast button:hover {
+             background-color: #555;
+        }
+        
+        body.high-contrast input, body.high-contrast textarea {
+            background-color: #222;
+            color: #fff;
+            border-color: #fff;
+        }
+
+        /* Layout & Containers */
+        .worksheet-container {
+            max-width: 900px;
+            margin: 20px auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 20px 40px;
+            overflow: hidden;
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        h1, h2, h3, h4 {
+            color: #2c3e50;
+        }
+        
+        body.high-contrast h1, body.high-contrast h2, body.high-contrast h3, body.high-contrast h4 {
+            color: #fff;
+        }
+        
+        .lesson-section {
+            display: none; /* Hidden by default */
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .lesson-section.active {
+            display: block;
+        }
+        
+        .content-box {
+            background-color: #fdfdfd;
+            border: 1px solid #e0e6ed;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .task-box {
+            background-color: #ffffff;
+            border: 2px dashed #d0d9e3;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .task-box h3 {
+            margin-top: 0;
+            color: #34495e;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Navigation */
+        nav {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            justify-content: center;
+        }
+        .nav-link {
+            text-decoration: none;
+            color: #3498db;
+            background-color: #eaf5fc;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: #3498db;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .nav-link:focus {
+            outline: 2px solid #2980b9;
+        }
+        
+        .page-nav-arrows {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        /* Buttons & Interactive Elements */
+        button, .nav-btn {
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s, transform 0.2s;
+            font-weight: bold;
+        }
+        button:hover, .nav-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .reset-btn {
+            background-color: #e74c3c;
+        }
+        .reset-btn:hover {
+            background-color: #c0392b;
+        }
+
+        /* Inputs */
+        input[type="text"], textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-top: 5px;
+            font-size: 1em;
+            font-family: inherit;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* Shame Message for Pasting */
+        .shame-message {
+            color: #e74c3c;
+            font-weight: bold;
+            text-align: center;
+            display: none;
+            margin-top: 10px;
+        }
+
+        /* --- Gamification --- */
+        #xp-hud {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            z-index: 1000;
+            font-size: 1.1em;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+        }
+        #xp-bar-container {
+            width: 100px;
+            height: 10px;
+            background-color: #555;
+            border-radius: 5px;
+            margin: 0 10px;
+            overflow: hidden;
+        }
+        #xp-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #3498db;
+            transition: width 0.5s;
+        }
+        #achievement-popup {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #2ecc71;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 2000;
+            transition: bottom 0.5s ease-in-out;
+            text-align: center;
+            font-size: 1.2em;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+        }
+        #achievement-popup.show {
+            bottom: 20px;
+        }
+        .achievement-title {
+            font-weight: bold;
+            display: block;
+            font-size: 1.2em;
+        }
+        .achievement-desc {
+            font-size: 0.9em;
+        }
+        
+        /* Particle effects */
+        .particle {
+            position: fixed;
+            background-color: gold;
+            border-radius: 50%;
+            z-index: 2001;
+            opacity: 0;
+        }
+        
+        /* --- Accessibility --- */
+        #accessibility-controls {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background-color: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 10px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        #accessibility-controls button {
+            width: 100%;
+            padding: 8px;
+            font-size: 0.9em;
+        }
+        #font-size-controls button {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            font-size: 1.2em;
+            line-height: 30px;
+            text-align: center;
+        }
+        
+        /* --- Feedback Button --- */
+        #feedback-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 24px;
+            background-color: #f39c12;
+            z-index: 998;
+            border: 2px solid white;
+        }
+        #feedback-btn:hover {
+            background-color: #e67e22;
+        }
+        
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1001; 
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.6);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* --- Specific Activity Styles --- */
+
+        /* Drag and Drop */
+        .drop-zone {
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #ecf0f1;
+            border: 2px dashed #bdc3c7;
+            min-height: 50px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        .drop-zone.drag-over {
+            background-color: #d1e4eb;
+        }
+        .drop-zone.correct { border-color: #2ecc71; background-color: #e8f8f0; }
+        .drop-zone.incorrect { border-color: #e74c3c; background-color: #fbeeee; }
+        
+        .drag-item {
+            padding: 8px 15px;
+            background-color: #9b59b6;
+            color: white;
+            border-radius: 20px;
+            cursor: grab;
+            margin: 5px;
+            display: inline-block;
+            user-select: none;
+        }
+        .drag-item.dragging {
+            opacity: 0.5;
+        }
+        #drag-options-container {
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        /* Fill in the Blanks */
+        .fill-blank-option {
+            padding: 5px 10px;
+            background-color: #eaf5fc;
+            border: 1px solid #3498db;
+            color: #3498db;
+            border-radius: 15px;
+            margin: 3px;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .fill-blank-option:hover {
+            background-color: #3498db;
+            color: #fff;
+        }
+        #fill-blank-options {
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .blank-space {
+            display: inline-block;
+            width: 120px;
+            height: 25px;
+            border-bottom: 2px solid #3498db;
+            margin: 0 5px;
+            text-align: center;
+            color: #2980b9;
+            font-weight: bold;
+        }
+
+        /* Core Simulation */
+        #core-sim-container {
+            display: flex;
+            gap: 20px;
+            justify-content: space-around;
+        }
+        .cpu-vis {
+            border: 2px solid #34495e;
+            padding: 10px;
+            border-radius: 5px;
+            width: 45%;
+        }
+        .core {
+            background-color: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            margin: 5px;
+            padding: 10px;
+            border-radius: 3px;
+            height: 40px;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        .core.busy {
+            background-color: #f1c40f;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            50% { background-color: #f39c12; }
+        }
+        #sim-log {
+            margin-top: 15px;
+            height: 100px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #fafafa;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        /* Drawing Canvas */
+        #drawing-canvas {
+            border: 2px solid #7f8c8d;
+            cursor: crosshair;
+            touch-action: none; /* Important for touch */
+        }
+
+        /* Writing Scorer */
+        #writingScorer {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        #resultsDashboard {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+            transition: opacity 0.5s;
+        }
+        #scoreCircle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 10px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 8px solid #e0e0e0;
+            transition: border-color 0.5s;
+        }
+        #scoreValue {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+        #successList li, #improvementList li {
+            list-style-type: none;
+            padding-left: 25px;
+            position: relative;
+            margin-bottom: 5px;
+        }
+        #successList li::before {
+            content: '✔️';
+            position: absolute;
+            left: 0;
+            color: #2ecc71;
+        }
+        #improvementList li::before {
+            content: '❌';
+            position: absolute;
+            left: 0;
+            color: #e74c3c;
+        }
+        #improvementList li.suggestion::before {
+            content: '💡';
+            position: absolute;
+            left: 0;
+            color: #f39c12;
+        }
+        .mark-scheme {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f4fd;
+            border: 1px solid #a9d7f5;
+            border-radius: 5px;
+        }
+        
+        /* Utility classes */
+        .hidden { display: none; }
+        ul, li { list-style-position: inside; }
+
+    </style>
+</head>
+<body>
+
+    <div id="xp-hud">
+        <span id="level">Level 1</span>
+        <div id="xp-bar-container"><div id="xp-bar"></div></div>
+        <span id="xp-count">0 XP</span>
+    </div>
+
+    <div id="accessibility-controls">
+        <button id="contrast-toggle" aria-label="Toggle High Contrast Mode">🎨</button>
+        <button id="font-toggle" aria-label="Toggle Dyslexia-Friendly Font">Aa</button>
+        <div id="font-size-controls">
+             <button id="font-increase" aria-label="Increase Font Size">+</button>
+             <button id="font-decrease" aria-label="Decrease Font Size">-</button>
+        </div>
+    </div>
+    
+    <button id="feedback-btn" aria-label="Open Feedback Form">🐞</button>
+
+    <div id="achievement-popup">
+        <span class="achievement-title">Achievement Unlocked!</span>
+        <span id="achievement-name" class="achievement-desc"></span>
+    </div>
+
+    <div id="feedback-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-modal">&times;</span>
+            <h3>Send Feedback</h3>
+            <p>Spotted a bug or have a suggestion? Let us know! Your feedback will be sent directly to the teacher.</p>
+            <textarea id="feedback-text" rows="6" placeholder="Describe the issue or your idea..."></textarea>
+            <button id="send-feedback-btn">Send Feedback</button>
+        </div>
+    </div>
+    
+    <div class="worksheet-container">
+        <header>
+            <h1>GCSE Computer Science: CPU Performance</h1>
+            <p>OCR J277 Specification Topic 1.1: Systems Architecture</p>
+        </header>
+
+        <nav id="main-nav">
+            </nav>
+
+        <section id="sec-starter" class="lesson-section">
+            <h2>Starter Activity: F-D-E Cycle Recap</h2>
+            <div class="content-box">
+                <p>Let's start by recapping the Fetch-Decode-Execute cycle. Drag the labels to the correct components in the CPU diagram.</p>
+            </div>
+            <div class="task-box" id="starter-task">
+                <h3>Label the CPU Components</h3>
+                <table>
+                    <tr>
+                        <td>Program Counter (PC)</td>
+                        <td><div id="drop-pc" class="drop-zone" data-answer="pc"></div></td>
+                    </tr>
+                    <tr>
+                        <td>Memory Address Register (MAR)</td>
+                        <td><div id="drop-mar" class="drop-zone" data-answer="mar"></div></td>
+                    </tr>
+                    <tr>
+                        <td>Memory Data Register (MDR)</td>
+                        <td><div id="drop-mdr" class="drop-zone" data-answer="mdr"></div></td>
+                    </tr>
+                    <tr>
+                        <td>Control Unit (CU)</td>
+                        <td><div id="drop-cu" class="drop-zone" data-answer="cu"></div></td>
+                    </tr>
+                    <tr>
+                        <td>Arithmetic Logic Unit (ALU)</td>
+                        <td><div id="drop-alu" class="drop-zone" data-answer="alu"></div></td>
+                    </tr>
+                </table>
+                <div id="drag-options-container">
+                    <strong>Labels:</strong>
+                    <div id="drag-pc" class="drag-item" draggable="true" data-id="pc">PC</div>
+                    <div id="drag-mar" class="drag-item" draggable="true" data-id="mar">MAR</div>
+                    <div id="drag-mdr" class="drag-item" draggable="true" data-id="mdr">MDR</div>
+                    <div id="drag-cu" class="drag-item" draggable="true" data-id="cu">CU</div>
+                    <div id="drag-alu" class="drag-item" draggable="true" data-id="alu">ALU</div>
+                </div>
+                <button onclick="taskManager.reset('starter')">Reset</button>
+            </div>
+        </section>
+
+        <section id="sec-cores" class="lesson-section">
+            <h2>Section 1: CPU Cores and Parallel Processing</h2>
+            <div class="content-box">
+                <p>A <strong>core</strong> is a single processing unit within a CPU. It contains all the essential components (like the CU, ALU, and registers) to execute one instruction at a time. A CPU can have multiple cores.</p>
+                <ul>
+                    <li><strong>Single Core:</strong> A CPU with one processing unit. Can execute one instruction per clock cycle.</li>
+                    <li><strong>Dual Core:</strong> A CPU with two processing units.</li>
+                    <li><strong>Quad Core:</strong> A CPU with four processing units. It can execute up to four instructions simultaneously, one per core.</li>
+                </ul>
+                <p>Having multiple cores enables <strong>parallel processing</strong>, where each core works on a different part of a program or a different program entirely at the same time. This is key to modern <strong>multitasking</strong> (running many programs at once).</p>
+            </div>
+            
+            <div class="task-box" id="cores-task1">
+                <h3>Task 1.1: Core Concepts - Fill the Blanks</h3>
+                <p>Complete the sentences below by clicking on the best word from the options provided.</p>
+                <div id="fill-blanks-container">
+                    <p>
+                        A CPU with four processing units is called a <span class="blank-space" data-answer="quad-core"></span> core CPU. The ability to use multiple cores to run different parts of a program at the same time is called <span class="blank-space" data-answer="parallel processing"></span>. This enables an operating system feature known as <span class="blank-space" data-answer="multitasking"></span>. However, performance doesn't always scale perfectly because some <span class="blank-space" data-answer="software"></span> is not designed to be <span class="blank-space" data-answer="split"></span> across multiple cores.
+                    </p>
+                </div>
+                <div id="fill-blank-options">
+                    </div>
+                 <button onclick="taskManager.reset('cores1')">Reset</button>
+            </div>
+
+            <div class="task-box" id="cores-task2">
+                <h3>Task 1.2: Simulation - Cores in Action</h3>
+                <p>Press "Start Simulation" to see how a Dual Core and a Quad Core CPU handle different types of tasks from a queue.</p>
+                <div id="core-sim-container">
+                    <div class="cpu-vis">
+                        <h4>Dual Core CPU</h4>
+                        <div id="dual-core-1" class="core">Core 1</div>
+                        <div id="dual-core-2" class="core">Core 2</div>
+                    </div>
+                    <div class="cpu-vis">
+                        <h4>Quad Core CPU</h4>
+                        <div id="quad-core-1" class="core">Core 1</div>
+                        <div id="quad-core-2" class="core">Core 2</div>
+                        <div id="quad-core-3" class="core">Core 3</div>
+                        <div id="quad-core-4" class="core">Core 4</div>
+                    </div>
+                </div>
+                <p><strong>Task Queue:</strong> Virus Scan (Parallel), Music Player (Serial), Single-Threaded Game (Serial), Web Browser (Serial)</p>
+                <button id="start-sim-btn">Start Simulation</button>
+                <button onclick="taskManager.reset('cores2')">Reset</button>
+                <h4>Simulation Log:</h4>
+                <div id="sim-log">Waiting to start...</div>
+                
+                <h4>Reflection Questions:</h4>
+                <label for="reflection1">Why did the 'Single-Threaded Game' not run any faster on the Quad-Core CPU?</label>
+                <textarea id="reflection1" data-keywords="single-thread,one core,cannot split,serial"></textarea>
+                
+                <label for="reflection2">Explain how the 'Virus Scan' task benefited from the Quad-Core processor.</label>
+                <textarea id="reflection2" data-keywords="parallel,multiple cores,split,simultaneously,at the same time"></textarea>
+            </div>
+
+        </section>
+
+        <section id="sec-clockspeed" class="lesson-section">
+            <h2>Section 2: Clock Speed</h2>
+            <div class="content-box">
+                <p><strong>Clock speed</strong> is the speed at which a CPU can carry out its basic operations. It is measured in <strong>Hertz (Hz)</strong>, which is one cycle per second. Modern CPUs have clock speeds measured in <strong>GigaHertz (GHz)</strong> - billions of cycles per second.</p>
+                <p>Each "cycle" corresponds to one step of the Fetch-Decode-Execute cycle. So, a higher clock speed means more instructions can be executed per second, leading to better performance.</p>
+                <p><strong>Common Mistake:</strong> Thinking clock speed is everything. A 3.0 GHz dual-core CPU is not automatically slower than a 2.5 GHz quad-core CPU. The number of cores, cache size, and the type of task being run are all crucial factors.</p>
+            </div>
+            <div class="task-box" id="clockspeed-task">
+                <h3>Task 2.1: True or False?</h3>
+                <p>Drag the following statements into the correct box.</p>
+                <div style="display: flex; justify-content: space-around;">
+                    <div style="width: 45%;">
+                        <h4>True</h4>
+                        <div class="drop-zone" data-answer="true" style="min-height: 200px;"></div>
+                    </div>
+                    <div style="width: 45%;">
+                        <h4>False</h4>
+                        <div class="drop-zone" data-answer="false" style="min-height: 200px;"></div>
+                    </div>
+                </div>
+                <div id="drag-options-container">
+                    <strong>Statements:</strong>
+                    <div class="drag-item" draggable="true" data-id="true1" data-answer="true">A 3GHz CPU performs 3 billion cycles per second.</div>
+                    <div class="drag-item" draggable="true" data-id="false1" data-answer="false">Clock speed is the only factor affecting performance.</div>
+                    <div class="drag-item" draggable="true" data-id="false2" data-answer="false">Hertz is a measure of memory size.</div>
+                    <div class="drag-item" draggable="true" data-id="true2" data-answer="true">GigaHertz means one billion cycles per second.</div>
+                    <div class="drag-item" draggable="true" data-id="false3" data-answer="false">A CPU with a higher clock speed is always better.</div>
+                </div>
+                <button onclick="taskManager.reset('clockspeed')">Reset</button>
+            </div>
+        </section>
+
+        <section id="sec-cache" class="lesson-section">
+            <h2>Section 3: Cache</h2>
+            <div class="content-box">
+                <p><strong>Cache</strong> is a small amount of very fast, expensive memory that is built directly into the CPU or sits very close to it. Its purpose is to store frequently or recently used data and instructions.</p>
+                <p>When the CPU needs data, it checks the cache first. If the data is there (a "cache hit"), it can be accessed almost instantly. If not (a "cache miss"), the CPU must fetch it from the much slower RAM. Because the cache is physically closer to the cores, the data doesn't have to travel as far.</p>
+                <p>A larger cache can hold more data, increasing the chance of a cache hit and therefore improving the overall speed of the CPU.</p>
+            </div>
+            <div class="task-box" id="cache-task">
+                <h3>Task 3.1: Memory Speed Hierarchy</h3>
+                <p>The CPU needs to access data. Arrange these components in order from <strong>fastest access time to slowest</strong> by dragging them into the numbered slots.</p>
+                <ol>
+                    <li><div class="drop-zone" data-answer="reg"></div></li>
+                    <li><div class="drop-zone" data-answer="l1"></div></li>
+                    <li><div class="drop-zone" data-answer="ram"></div></li>
+                    <li><div class="drop-zone" data-answer="ssd"></div></li>
+                </ol>
+                <div id="drag-options-container">
+                    <strong>Components:</strong>
+                    <div class="drag-item" draggable="true" data-id="ssd" data-answer="ssd">SSD</div>
+                    <div class="drag-item" draggable="true" data-id="l1" data-answer="l1">CPU Cache</div>
+                    <div class="drag-item" draggable="true" data-id="reg" data-answer="reg">CPU Registers</div>
+                    <div class="drag-item" draggable="true" data-id="ram" data-answer="ram">RAM</div>
+                </div>
+                <button onclick="taskManager.reset('cache')">Reset</button>
+            </div>
+        </section>
+        
+        <section id="sec-performance" class="lesson-section">
+            <h2>Section 4: Other Ways to Improve Performance</h2>
+            <div class="content-box">
+                <p>While the CPU is the brain, other components are vital for a fast computer. Upgrading them can have a huge impact.</p>
+                <ul>
+                    <li><strong>Increase RAM:</strong> More RAM allows more applications to run smoothly at once without resorting to slow <strong>virtual memory</strong> (using the hard drive as temporary RAM). This reduces the need for the CPU to wait for data to be swapped from the disk.</li>
+                    <li><strong>Install an SSD:</strong> A Solid State Drive (SSD) has much faster data access speeds than a traditional Hard Disk Drive (HDD). This means the OS, programs, and files load much quicker.</li>
+                    <li><strong>Dedicated Graphics Card (GPU):</strong> A GPU is a specialized processor for handling complex graphics. It offloads this work from the CPU, allowing games and graphics-intensive programs to run much better and freeing up the CPU for other tasks.</li>
+                </ul>
+            </div>
+            <div class="task-box" id="performance-task">
+                <h3>Task 4.1: Odd One Out</h3>
+                <p>In each group, identify the item that doesn't fit with the others as a direct performance upgrade. Explain your reasoning.</p>
+                <div>
+                    <h4>Group 1:</h4>
+                    <ul>
+                        <li><input type="radio" name="group1" value="ram"> Increase RAM</li>
+                        <li><input type="radio" name="group1" value="clock"> Increase Clock Speed</li>
+                        <li><input type="radio" name="group1" value="hdd" data-correct="true"> Increase Hard Drive Size</li>
+                        <li><input type="radio" name="group1" value="cores"> Add More Cores</li>
+                    </ul>
+                    <label for="reason1">Reasoning:</label>
+                    <input type="text" id="reason1" placeholder="Explain why it's the odd one out...">
+                </div>
+                <hr>
+                <div>
+                    <h4>Group 2:</h4>
+                    <ul>
+                        <li><input type="radio" name="group2" value="ssd"> SSD</li>
+                        <li><input type="radio" name="group2" value="cache"> L1 Cache</li>
+                        <li><input type="radio" name="group2" value="ram"> RAM</li>
+                        <li><input type="radio" name="group2" value="gpu" data-correct="true"> GPU</li>
+                    </ul>
+                    <label for="reason2">Reasoning:</label>
+                    <input type="text" id="reason2" placeholder="Explain why it's the odd one out...">
+                </div>
+                <button onclick="taskManager.checkOddOneOut()">Check Answers</button>
+                <button class="reset-btn" onclick="taskManager.reset('performance')">Reset</button>
+            </div>
+        </section>
+        
+        <section id="sec-calculations" class="lesson-section">
+            <h2>Section 5: Performance Calculations</h2>
+            <div class="content-box">
+                <p>You can calculate the theoretical maximum number of instructions a CPU can perform per second. The formula is:</p>
+                <p><strong>Instructions per second = Number of Cores × Clock Speed (in Hz)</strong></p>
+                <p>Remember: 1 GHz = 1,000,000,000 Hz.</p>
+                <p>This assumes the software can perfectly use all cores at once (perfect parallel processing), which is not always true in the real world!</p>
+            </div>
+            <div class="task-box" id="calculations-task">
+                <h3>Task 5.1: Calculate the Max Instructions</h3>
+                <p>For each question, enter your numerical answer and use the canvas to show your working if you wish.</p>
+                
+                <div class="calculation-problem">
+                    <h4>Problem 1:</h4>
+                    <p>Number of instructions per second executed by a single core CPU with a clock speed of 2GHz.</p>
+                    <label for="calc1">Answer:</label>
+                    <input type="text" id="calc1" data-answer="2000000000">
+                    <p>Show your working:</p>
+                    <canvas id="drawing-canvas-1" width="800" height="150"></canvas>
+                    <button onclick="taskManager.clearCanvas('drawing-canvas-1')">Clear Canvas</button>
+                </div>
+                
+                <div class="calculation-problem">
+                    <h4>Problem 2:</h4>
+                    <p>Number of instructions per second executed by a quad core CPU with a clock speed of 1GHz.</p>
+                    <label for="calc2">Answer:</label>
+                    <input type="text" id="calc2" data-answer="4000000000">
+                    <p>Show your working:</p>
+                    <canvas id="drawing-canvas-2" width="800" height="150"></canvas>
+                    <button onclick="taskManager.clearCanvas('drawing-canvas-2')">Clear Canvas</button>
+                </div>
+
+                <div class="calculation-problem">
+                    <h4>Problem 3:</h4>
+                    <p>Number of instructions per second executed by a dual core CPU running at 1.5GHz.</p>
+                    <label for="calc3">Answer:</label>
+                    <input type="text" id="calc3" data-answer="3000000000">
+                    <p>Show your working:</p>
+                    <canvas id="drawing-canvas-3" width="800" height="150"></canvas>
+                    <button onclick="taskManager.clearCanvas('drawing-canvas-3')">Clear Canvas</button>
+                </div>
+                
+                <button onclick="taskManager.checkCalculations()">Check Answers</button>
+                 <button class="reset-btn" onclick="taskManager.reset('calculations')">Reset</button>
+
+            </div>
+        </section>
+
+        <section id="sec-research" class="lesson-section">
+            <h2>Section 6: Research Task</h2>
+            <div class="content-box">
+                <p>Theory is one thing, but let's look at a real-world CPU. Your task is to investigate the specs of a popular processor.</p>
+            </div>
+            <div class="task-box" id="research-task">
+                <h3>Task 6.1: Analyze the AMD Ryzen 7 5700G</h3>
+                <p>Open the official product page in a new tab: 
+                    <a href="https://www.amd.com/en/products/apu/amd-ryzen-7-5700g" target="_blank" rel="noopener noreferrer">AMD Ryzen 7 5700G</a>.
+                </p>
+                <p>Use the information on that page (and a little bit of searching for the last two questions) to answer the following.</p>
+                
+                <label for="res1">How many CPU cores does it have?</label>
+                <input type="text" id="res1" data-answer="8">
+                
+                <label for="res2">What is the base clock speed of the CPU?</label>
+                <input type="text" id="res2" data-answer="3.8ghz">
+                
+                <label for="res3">What clock speed can it boost to?</label>
+                <input type="text" id="res3" data-answer="4.6ghz">
+                
+                <label for="res4">How big is the L3 cache?</label>
+                <input type="text" id="res4" data-answer="16mb">
+
+                <label for="res5">What does it mean by 'Unlocked' for overclocking?</label>
+                <textarea id="res5" data-keywords="multiplier,overclock,change speed,increase clock"></textarea>
+
+                <label for="res6">What does TDP refer to?</label>
+                <textarea id="res6" data-keywords="thermal design power,heat,cooling,watts"></textarea>
+                
+                <button onclick="taskManager.checkResearch()">Check Answers</button>
+                <button class="reset-btn" onclick="taskManager.reset('research')">Reset</button>
+                <div id="research-answers" class="mark-scheme"></div>
+            </div>
+        </section>
+
+        <section id="sec-summary" class="lesson-section">
+            <h2>Summary Quiz</h2>
+            <div class="content-box">
+                <p>Let's check your understanding of the key concepts from this lesson. Answer the questions below.</p>
+            </div>
+            <div class="task-box" id="summary-quiz">
+                <h3>Final Check</h3>
+                <div id="quiz-container">
+                    </div>
+                <button id="submit-quiz-btn">Submit Quiz</button>
+                 <button class="reset-btn" onclick="taskManager.reset('quiz')">Reset</button>
+                <div id="quiz-results" style="margin-top: 20px; font-weight: bold;"></div>
+            </div>
+        </section>
+
+        <section id="sec-exampractice" class="lesson-section">
+            <h2>Exam Practice</h2>
+            <div class="content-box">
+                <p>Apply your knowledge to some typical exam-style questions. Write your answers in full sentences. Use the "Check My Writing" button to get automated feedback on the structure and quality of your answer before seeing the mark scheme.</p>
+            </div>
+            
+            <div class="task-box" id="exam-q1">
+                <h3>Question 1 (4 marks)</h3>
+                <p>Explain two reasons why a quad-core processor might not run twice as fast as a dual-core processor.</p>
+                <div id="writingScorer1" class="writingScorer">
+                    <div>
+                        <label for="studentAnswer1">Enter your answer:</label>
+                        <textarea id="studentAnswer1" rows="8"></textarea>
+                        <input type="hidden" id="keywords1" value="software,single-thread,task,split,clock speed,cache">
+                        <button class="analyzeBtn">Check My Writing</button>
+                    </div>
+                    <div class="resultsDashboard" style="display: none;">
+                        <h3>Your Writing Feedback</h3>
+                        <div>
+                            <p>Overall Score:</p>
+                            <div class="scoreCircle"><span class="scoreValue">0</span></div>
+                        </div>
+                        <div>
+                            <h4>Successes:</h4>
+                            <ul class="successList"></ul>
+                            <h4>Areas for Improvement:</h4>
+                            <ul class="improvementList"></ul>
+                        </div>
+                    </div>
+                </div>
+                <button class="show-mark-scheme-btn" style="display:none; margin-top: 10px;">Show Mark Scheme</button>
+                <div class="mark-scheme">
+                    <h4>Mark Scheme:</h4>
+                    <p>Award one mark for identifying a valid reason and a second mark for explaining it, up to a maximum of 4 marks.</p>
+                    <ul>
+                        <li><strong>Software may not be designed for multiple cores (1):</strong> Some programs are written to run on a single processing thread, so they cannot take advantage of the extra cores (1).</li>
+                        <li><strong>Some tasks cannot be split (1):</strong> Certain tasks are sequential and cannot be broken down into smaller parts to be processed in parallel (1).</li>
+                        <li><strong>Clock speed could be different (1):</strong> The dual-core CPU might have a significantly higher clock speed per core than the quad-core CPU (1).</li>
+                        <li><strong>Cache size could be different (1):</strong> The dual-core CPU might have more cache per core, leading to faster data retrieval for certain tasks (1).</li>
+                    </ul>
+                </div>
+                 <button class="reset-btn" onclick="taskManager.reset('exam1')">Reset</button>
+            </div>
+            
+            <div class="task-box" id="exam-q2">
+                <h3>Question 2 (6 marks)</h3>
+                <p>A computer user is experiencing slow performance when running multiple applications at once. Describe three ways the user could improve the computer's performance. For each, explain *how* it would improve performance.</p>
+                 <div id="writingScorer2" class="writingScorer">
+                    <div>
+                        <label for="studentAnswer2">Enter your answer:</label>
+                        <textarea id="studentAnswer2" rows="10"></textarea>
+                        <input type="hidden" id="keywords2" value="ram,virtual memory,ssd,access speed,hdd,gpu,graphics,cpu,cores,clock speed,cache">
+                        <button class="analyzeBtn">Check My Writing</button>
+                    </div>
+                    <div class="resultsDashboard" style="display: none;">
+                        <h3>Your Writing Feedback</h3>
+                        <div>
+                            <p>Overall Score:</p>
+                            <div class="scoreCircle"><span class="scoreValue">0</span></div>
+                        </div>
+                        <div>
+                            <h4>Successes:</h4>
+                            <ul class="successList"></ul>
+                            <h4>Areas for Improvement:</h4>
+                            <ul class="improvementList"></ul>
+                        </div>
+                    </div>
+                </div>
+                <button class="show-mark-scheme-btn" style="display:none; margin-top: 10px;">Show Mark Scheme</button>
+                 <div class="mark-scheme">
+                    <h4>Mark Scheme:</h4>
+                    <p>Award one mark for identifying a valid method and a second mark for explaining how it improves performance. Max 3 pairs.</p>
+                    <ul>
+                        <li><strong>Method:</strong> Increase RAM (1). <br><strong>Explanation:</strong> This allows more applications/data to be held in main memory, reducing the need to use slower virtual memory / swap file on the HDD/SSD (1).</li>
+                        <li><strong>Method:</strong> Upgrade to an SSD (1). <br><strong>Explanation:</strong> SSDs have much faster data read/write speeds than HDDs, so loading the OS, applications and files will be quicker (1).</li>
+                         <li><strong>Method:</strong> Upgrade the CPU (1). <br><strong>Explanation:</strong> A CPU with more cores or a higher clock speed can process more instructions per second, which is especially useful when multitasking (1).</li>
+                        <li><strong>Method:</strong> Install a dedicated graphics card (GPU) (1). <br><strong>Explanation:</strong> A GPU handles all graphics processing, freeing up the CPU to focus on other tasks, improving overall system responsiveness (1).</li>
+                    </ul>
+                </div>
+                <button class="reset-btn" onclick="taskManager.reset('exam2')">Reset</button>
+            </div>
+        </section>
+
+        <section id="sec-extensions" class="lesson-section">
+            <h2>Extension Activities</h2>
+            <div class="task-box">
+                <h3>Beyond the Specification</h3>
+                <div class="extension-task">
+                    <label for="ext1"><strong>Research Hyper-Threading:</strong> What is it and how does it improve performance?</label>
+                    <textarea id="ext1" rows="5" placeholder="Type your findings here..."></textarea>
+                </div>
+                <div class="extension-task">
+                    <label for="ext2"><strong>Research Overclocking:</strong> Explain one advantage and two disadvantages of overclocking a CPU.</label>
+                    <textarea id="ext2" rows="5" placeholder="Type your findings here..."></textarea>
+                </div>
+            </div>
+
+            <h2>Key Takeaways</h2>
+            <div class="content-box">
+                <ul>
+                    <li>A <strong>core</strong> is a CPU's processing unit. More cores allow for <strong>parallel processing</strong>.</li>
+                    <li><strong>Clock Speed</strong> (in GHz) is the number of fetch-execute cycles per second.</li>
+                    <li><strong>Cache</strong> is small, ultra-fast memory in the CPU that stores frequently used data.</li>
+                    <li>Performance depends on a balance of <strong>cores, clock speed, and cache size</strong>.</li>
+                    <li>A multi-core CPU doesn't guarantee proportional speed increases due to software limitations.</li>
+                    <li>Upgrading <strong>RAM</strong>, storage to an <strong>SSD</strong>, and adding a <strong>GPU</strong> are other effective ways to boost performance.</li>
+                </ul>
+            </div>
+            
+             <h2>Recommended Videos</h2>
+             <div class="content-box">
+                 <p>Watch these videos to reinforce your understanding. (Placeholders - replace '#' with actual YouTube embed links).</p>
+                 <div style="display:flex; gap: 10px; justify-content: center;">
+                     <iframe width="400" height="225" src="#" title="Video 1" frameborder="0" allowfullscreen></iframe>
+                     <iframe width="400" height="225" src="#" title="Video 2" frameborder="0" allowfullscreen></iframe>
+                 </div>
+             </div>
+        </section>
+
+
+        <div class="page-nav-arrows">
+            <button id="prev-btn" class="nav-btn">← Previous</button>
+            <button id="next-btn" class="nav-btn">Next →</button>
+        </div>
+    </div>
+<script>
+// --- GLOBAL CONFIGURATION ---
+const navSections = [
+    { id: 'starter', name: 'Starter' },
+    { id: 'cores', name: 'Cores' },
+    { id: 'clockspeed', name: 'Clock Speed' },
+    { id: 'cache', name: 'Cache' },
+    { id: 'performance', name: 'Performance Factors' },
+    { id: 'calculations', name: 'Calculations' },
+    { id: 'research', name: 'Research Task' },
+    { id: 'summary', name: 'Summary Quiz' },
+    { id: 'exampractice', name: 'Exam Practice' },
+    { id: 'extensions', name: 'Extensions' }
+];
+let currentSectionIndex = 0;
+
+// --- PASTE PREVENTION ---
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('input, textarea').forEach(el => {
+        el.addEventListener('paste', e => {
+            e.preventDefault();
+            const shameMessage = document.createElement('div');
+            shameMessage.className = 'shame-message';
+            shameMessage.textContent = 'Pasting is disabled. Please type your own answer.';
+            
+            // Remove any existing message before adding a new one
+            const existingMessage = e.target.parentElement.querySelector('.shame-message');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+            
+            e.target.parentElement.appendChild(shameMessage);
+            shameMessage.style.display = 'block';
+            setTimeout(() => {
+                shameMessage.style.display = 'none';
+            }, 3000);
+        });
+    });
+});
+
+
+// --- NAVIGATION LOGIC ---
+const navContainer = document.getElementById('main-nav');
+const sections = document.querySelectorAll('.lesson-section');
+const prevBtn = document.getElementById('prev-btn');
+const nextBtn = document.getElementById('next-btn');
+
+function updateNavigation() {
+    // Update nav links
+    navContainer.innerHTML = '';
+    navSections.forEach((section, index) => {
+        const link = document.createElement('a');
+        link.href = '#';
+        link.textContent = section.name;
+        link.className = 'nav-link';
+        link.setAttribute('data-index', index);
+        if (index === currentSectionIndex) {
+            link.classList.add('active');
+        }
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            currentSectionIndex = parseInt(e.target.getAttribute('data-index'));
+            updateNavigation();
+        });
+        navContainer.appendChild(link);
+    });
+
+    // Update section visibility
+    sections.forEach((section, index) => {
+        if (index === currentSectionIndex) {
+            section.classList.add('active');
+        } else {
+            section.classList.remove('active');
+        }
+    });
+
+    // Update arrow buttons
+    prevBtn.disabled = (currentSectionIndex === 0);
+    nextBtn.disabled = (currentSectionIndex === navSections.length - 1);
+    
+    // Scroll to top of worksheet
+    document.querySelector('.worksheet-container').scrollTop = 0;
+}
+
+prevBtn.addEventListener('click', () => {
+    if (currentSectionIndex > 0) {
+        currentSectionIndex--;
+        updateNavigation();
+    }
+});
+
+nextBtn.addEventListener('click', () => {
+    if (currentSectionIndex < navSections.length - 1) {
+        currentSectionIndex++;
+        updateNavigation();
+    }
+});
+
+
+// --- GAMIFICATION ENGINE ---
+const gameManager = {
+    xp: 0,
+    level: 1,
+    xpForNextLevel: 100,
+    achievements: new Set(),
+    
+    achievementList: {
+        STARTER_COMPLETE: { name: "Quick Learner", desc: "Completed the starter activity." },
+        CORES_SIM: { name: "Core Competence", desc: "Understood how CPU cores work." },
+        CLOCKSPEED_TASK: { name: "Speed Demon", desc: "Mastered clock speed concepts." },
+        CACHE_TASK: { name: "Cache King", desc: "Organized the memory hierarchy." },
+        PERFORMANCE_TASK: { name: "System Specialist", desc: "Identified system bottlenecks." },
+        CALC_TASK: { name: "Mathemagician", desc: "Calculated CPU performance." },
+        RESEARCH_TASK: { name: "Digital Detective", desc: "Analyzed a real-world CPU." },
+        QUIZ_MASTER: { name: "Quiz Master", desc: "Aced the summary quiz." },
+        EXAM_READY: { name: "Exam Ready", desc: "Completed an exam practice question." },
+        LEVEL_2: { name: "Level Up!", desc: "Reached Level 2." },
+        LEVEL_3: { name: "On a Roll!", desc: "Reached Level 3." },
+        LEVEL_4: { name: "Virtuoso", desc: "Reached Level 4." },
+        LEVEL_5: { name: "Grand Master", desc: "Reached Level 5! Maximum level!" },
+    },
+
+    addXP(amount, sourceId) {
+        if (this.achievements.has(sourceId)) return; // Only award XP once per source
+
+        this.xp = this.xp + amount;
+        if (amount > 0) {
+           this.achievements.add(sourceId);
+        }
+        
+        console.log(`+${amount} XP from ${sourceId}. Total: ${this.xp}`);
+        
+        if (this.xp >= this.xpForNextLevel) {
+            this.levelUp();
+        }
+        this.updateHUD();
+    },
+
+    levelUp() {
+        if (this.level >= 5) return;
+        this.level++;
+        this.xp = this.xp - this.xpForNextLevel;
+        this.xpForNextLevel = Math.round(this.xpForNextLevel * 1.5);
+        this.showAchievement(`LEVEL_${this.level}`);
+        this.createParticleExplosion();
+    },
+
+    updateHUD() {
+        document.getElementById('level').textContent = `Level ${this.level}`;
+        document.getElementById('xp-count').textContent = `${this.xp} / ${this.xpForNextLevel} XP`;
+        const xpPercentage = (this.xp / this.xpForNextLevel) * 100;
+        document.getElementById('xp-bar').style.width = `${xpPercentage}%`;
+    },
+
+    showAchievement(key) {
+        if (this.achievements.has(key)) return;
+        
+        const achievement = this.achievementList[key];
+        if (!achievement) return;
+
+        this.achievements.add(key);
+        const popup = document.getElementById('achievement-popup');
+        popup.querySelector('.achievement-title').textContent = achievement.desc.includes('Level') ? achievement.name : 'Achievement Unlocked!';
+        popup.querySelector('#achievement-name').textContent = achievement.desc.includes('Level') ? achievement.desc : achievement.name;
+        
+        popup.classList.add('show');
+        setTimeout(() => {
+            popup.classList.remove('show');
+        }, 4000);
+    },
+    
+    createParticleExplosion() {
+        const container = document.body;
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            container.appendChild(particle);
+
+            const size = Math.random() * 15 + 5;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            
+            const x = window.innerWidth / 2;
+            const y = window.innerHeight / 2;
+            
+            const angle = Math.random() * 360;
+            const distance = Math.random() * 150 + 50;
+            
+            const destinationX = x + distance * Math.cos(angle * Math.PI / 180);
+            const destinationY = y + distance * Math.sin(angle * Math.PI / 180);
+
+            const animation = particle.animate([
+                { transform: `translate(${x}px, ${y}px) scale(1)`, opacity: 1 },
+                { transform: `translate(${destinationX}px, ${destinationY}px) scale(0)`, opacity: 0 }
+            ], {
+                duration: Math.random() * 1000 + 800,
+                easing: 'ease-out'
+            });
+
+            animation.onfinish = () => particle.remove();
+        }
+    }
+};
+
+
+// --- ACCESSIBILITY FEATURES ---
+const accessibility = {
+    currentFontSize: 16,
+    
+    init() {
+        document.getElementById('contrast-toggle').addEventListener('click', () => document.body.classList.toggle('high-contrast'));
+        document.getElementById('font-toggle').addEventListener('click', () => document.body.classList.toggle('dyslexia-font'));
+        document.getElementById('font-increase').addEventListener('click', () => this.changeFontSize(2));
+        document.getElementById('font-decrease').addEventListener('click', () => this.changeFontSize(-2));
+    },
+
+    changeFontSize(change) {
+        this.currentFontSize = this.currentFontSize + change;
+        if (this.currentFontSize < 12) this.currentFontSize = 12;
+        if (this.currentFontSize > 28) this.currentFontSize = 28;
+        document.body.style.fontSize = `${this.currentFontSize}px`;
+    }
+};
+
+// --- FEEDBACK MODAL ---
+const feedback = {
+    init() {
+        const modal = document.getElementById('feedback-modal');
+        const btn = document.getElementById('feedback-btn');
+        const span = document.getElementById('close-modal');
+        const sendBtn = document.getElementById('send-feedback-btn');
+
+        btn.onclick = () => { modal.style.display = 'block'; };
+        span.onclick = () => { modal.style.display = 'none'; };
+        window.onclick = (event) => {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        sendBtn.addEventListener('click', () => {
+            const text = document.getElementById('feedback-text').value;
+            if (text.trim() === '') {
+                alert('Please enter your feedback before sending.');
+                return;
+            }
+            const currentSectionName = navSections[currentSectionIndex].name;
+            const subject = `Feedback on Worksheet: Section "${currentSectionName}"`;
+            const body = `Feedback content:\n\n${text}\n\n--- Debug Info ---\nSection ID: ${navSections[currentSectionIndex].id}\nUser Agent: ${navigator.userAgent}`;
+            window.location.href = `mailto:millingtond@mgs.org?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            modal.style.display = 'none';
+            document.getElementById('feedback-text').value = '';
+        });
+    }
+};
+
+// --- TASK MANAGEMENT & MARKING ---
+const taskManager = {
+    initDragAndDrop(containerId) {
+        const container = document.getElementById(containerId);
+        if(!container) return;
+        
+        const draggables = container.querySelectorAll('.drag-item');
+        const dropZones = container.querySelectorAll('.drop-zone');
+
+        draggables.forEach(draggable => {
+            draggable.addEventListener('dragstart', () => {
+                draggable.classList.add('dragging');
+            });
+            draggable.addEventListener('dragend', () => {
+                draggable.classList.remove('dragging');
+            });
+        });
+
+        dropZones.forEach(zone => {
+            zone.addEventListener('dragover', e => {
+                e.preventDefault();
+                zone.classList.add('drag-over');
+            });
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('drag-over');
+            });
+            zone.addEventListener('drop', e => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+                const draggingEl = document.querySelector('.dragging');
+                if (draggingEl && zone.children.length === 0) {
+                    zone.appendChild(draggingEl);
+                    this.checkDrop(draggingEl, zone, containerId);
+                }
+            });
+        });
+    },
+
+    checkDrop(item, zone, taskId) {
+        const itemAnswer = item.dataset.answer || item.dataset.id;
+        const zoneAnswer = zone.dataset.answer;
+
+        if (itemAnswer === zoneAnswer) {
+            zone.classList.remove('incorrect');
+            zone.classList.add('correct');
+            gameManager.addXP(5, `${taskId}-${itemAnswer}`);
+        } else {
+            zone.classList.remove('correct');
+            zone.classList.add('incorrect');
+        }
+        
+        // Check for overall task completion
+        const allZones = document.querySelectorAll(`#${taskId} .drop-zone`);
+        const allCorrect = Array.from(allZones).every(z => z.classList.contains('correct') && z.children.length > 0);
+        if(allCorrect) {
+            let achievementKey = '';
+            if (taskId.startsWith('starter')) achievementKey = 'STARTER_COMPLETE';
+            if (taskId.startsWith('clockspeed')) achievementKey = 'CLOCKSPEED_TASK';
+            if (taskId.startsWith('cache')) achievementKey = 'CACHE_TASK';
+            
+            if (achievementKey) {
+                gameManager.addXP(20, `${taskId}-complete`);
+                gameManager.showAchievement(achievementKey);
+            }
+        }
+    },
+    
+    initFillTheBlanks() {
+        const options = ["quad-core", "dual-core", "parallel processing", "single threading", "multitasking", "compiling", "software", "hardware", "split", "combined"];
+        // Simple shuffle
+        options.sort(() => 0.5 - Math.random());
+        
+        const optionsContainer = document.getElementById('fill-blank-options');
+        options.forEach(opt => {
+            const span = document.createElement('span');
+            span.className = 'fill-blank-option';
+            span.textContent = opt;
+            span.onclick = () => this.selectBlankOption(opt);
+            optionsContainer.appendChild(span);
+        });
+        
+        document.querySelectorAll('.blank-space').forEach(blank => {
+            blank.onclick = () => this.clearBlank(blank);
+        });
+    },
+
+    selectBlankOption(text) {
+        const firstEmptyBlank = document.querySelector('.blank-space:not(.filled)');
+        if (firstEmptyBlank) {
+            firstEmptyBlank.textContent = text;
+            firstEmptyBlank.classList.add('filled');
+            this.checkFillTheBlanks();
+        }
+    },
+    
+    clearBlank(blank) {
+        if(blank.classList.contains('filled')) {
+            blank.textContent = '';
+            blank.classList.remove('filled', 'correct', 'incorrect');
+        }
+    },
+
+    checkFillTheBlanks() {
+        let allCorrect = true;
+        document.querySelectorAll('.blank-space.filled').forEach(blank => {
+            if (blank.textContent.toLowerCase() === blank.dataset.answer.toLowerCase()) {
+                blank.style.borderColor = '#2ecc71';
+                gameManager.addXP(5, `fillblank-${blank.dataset.answer}`);
+            } else {
+                blank.style.borderColor = '#e74c3c';
+                allCorrect = false;
+            }
+        });
+        const allBlanks = document.querySelectorAll('.blank-space');
+        if (Array.from(allBlanks).every(b => b.classList.contains('filled')) && allCorrect) {
+             gameManager.addXP(20, 'fillblank-complete');
+             gameManager.showAchievement('CORES_SIM');
+        }
+    },
+    
+    initCoreSim() {
+        const startBtn = document.getElementById('start-sim-btn');
+        startBtn.addEventListener('click', () => {
+            startBtn.disabled = true;
+            this.runCoreSim();
+        });
+    },
+    
+    runCoreSim() {
+        const log = document.getElementById('sim-log');
+        log.innerHTML = '';
+        const dualCores = [document.getElementById('dual-core-1'), document.getElementById('dual-core-2')];
+        const quadCores = [document.getElementById('quad-core-1'), document.getElementById('quad-core-2'), document.getElementById('quad-core-3'), document.getElementById('quad-core-4')];
+        const tasks = [
+            { name: 'Virus Scan', type: 'parallel', duration: 4 },
+            { name: 'Music Player', type: 'serial', duration: 2 },
+            { name: 'Single-Threaded Game', type: 'serial', duration: 3 },
+            { name: 'Web Browser', type: 'serial', duration: 2 },
+        ];
+        
+        const resetCores = () => {
+            [...dualCores, ...quadCores].forEach(core => {
+                core.classList.remove('busy');
+                core.textContent = core.id.split('-').pop().replace('core', 'Core ');
+            });
+        };
+        resetCores();
+
+        let tick = 0;
+        const addLog = (msg) => {
+            log.innerHTML += `<div>[Tick ${tick}]: ${msg}</div>`;
+            log.scrollTop = log.scrollHeight;
+        };
+        
+        addLog('Simulation started.');
+        
+        const simInterval = setInterval(() => {
+            tick++;
+            resetCores();
+            
+            let task = tasks.shift();
+            if (!task) {
+                clearInterval(simInterval);
+                addLog('All tasks complete!');
+                document.getElementById('start-sim-btn').disabled = false;
+                gameManager.addXP(30, 'sim-complete');
+                return;
+            }
+            
+            addLog(`Processing task: ${task.name} (${task.type})`);
+            
+            if (task.type === 'parallel') {
+                addLog('Dual-Core: Splitting task across 2 cores.');
+                dualCores.forEach(c => { c.classList.add('busy'); c.textContent = task.name; });
+                addLog('Quad-Core: Splitting task across 4 cores.');
+                quadCores.forEach(c => { c.classList.add('busy'); c.textContent = task.name; });
+            } else {
+                addLog('Dual-Core: Task running on 1 core.');
+                dualCores[0].classList.add('busy');
+                dualCores[0].textContent = task.name;
+                addLog('Quad-Core: Task running on 1 core.');
+                quadCores[0].classList.add('busy');
+                quadCores[0].textContent = task.name;
+            }
+
+        }, 2000);
+        
+        // Reflection questions XP
+        document.getElementById('reflection1').addEventListener('blur', (e) => this.checkKeywords(e.target, 15));
+        document.getElementById('reflection2').addEventListener('blur', (e) => this.checkKeywords(e.target, 15));
+    },
+
+    checkKeywords(textarea, xp) {
+        const text = textarea.value.toLowerCase();
+        const keywords = textarea.dataset.keywords.split(',');
+        let foundCount = 0;
+        keywords.forEach(kw => {
+            if (text.includes(kw)) {
+                foundCount++;
+            }
+        });
+        if (foundCount > 0 && text.length > 20) {
+            gameManager.addXP(xp, `reflection-${textarea.id}`);
+        }
+    },
+
+    checkOddOneOut() {
+        document.querySelectorAll('#performance-task input[type="radio"]').forEach(radio => {
+            const isCorrect = radio.dataset.correct === 'true';
+            const label = radio.parentElement;
+            if (radio.checked) {
+                if (isCorrect) {
+                    label.style.color = '#2ecc71';
+                    gameManager.addXP(10, `odd-one-out-${radio.name}`);
+                } else {
+                    label.style.color = '#e74c3c';
+                }
+            } else {
+                 if (isCorrect) {
+                    label.style.fontWeight = 'bold';
+                 }
+            }
+        });
+        // Check for overall task completion
+        const correctChecks = document.querySelectorAll('#performance-task input[type="radio"][data-correct="true"]:checked');
+        if (correctChecks.length === 2) {
+            gameManager.showAchievement('PERFORMANCE_TASK');
+            gameManager.addXP(20, 'performance-complete');
+        }
+    },
+    
+    initCanvas(canvasId) {
+        const canvas = document.getElementById(canvasId);
+        if(!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            // For touch events, use the first touch point
+            const touch = evt.touches ? evt.touches[0] : evt;
+            return {
+                x: touch.clientX - rect.left,
+                y: touch.clientY - rect.top
+            };
+        }
+
+        function startDrawing(e) {
+            drawing = true;
+            gameManager.addXP(2, `canvas-draw-${canvasId}`); // Small XP for trying
+            draw(e);
+        }
+
+        function stopDrawing() {
+            drawing = false;
+            ctx.beginPath();
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            e.preventDefault(); // Prevent scrolling on touch devices
+            
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#2c3e50';
+
+            const pos = getMousePos(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchend', stopDrawing);
+        canvas.addEventListener('touchmove', draw);
+    },
+    
+    clearCanvas(canvasId) {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    },
+    
+    checkCalculations() {
+        let allCorrect = true;
+        for(let i=1; i<=3; i++) {
+            const input = document.getElementById(`calc${i}`);
+            const userAnswer = input.value.replace(/,/g, '').replace(/ /g, '');
+            if(userAnswer === input.dataset.answer) {
+                input.style.borderColor = '#2ecc71';
+                gameManager.addXP(10, `calc-${i}`);
+            } else {
+                input.style.borderColor = '#e74c3c';
+                allCorrect = false;
+            }
+        }
+        if (allCorrect) {
+            gameManager.showAchievement('CALC_TASK');
+            gameManager.addXP(20, 'calc-complete');
+        }
+    },
+
+    checkResearch() {
+        const answers = {
+            res1: '8', res2: '3.8ghz', res3: '4.6ghz', res4: '16mb',
+            res5: 'The clock speed multiplier is unlocked, allowing users to increase the clock speed (overclock).',
+            res6: 'Thermal Design Power. It indicates the maximum amount of heat a component generates, measured in watts.'
+        };
+        
+        let allFilled = true;
+        Object.keys(answers).forEach(id => {
+            const el = document.getElementById(id);
+            if (el.value.trim() === '') allFilled = false;
+        });
+        
+        if (!allFilled) {
+            alert('Please attempt to answer all questions before checking.');
+            return;
+        }
+
+        const answerDiv = document.getElementById('research-answers');
+        answerDiv.innerHTML = '<h4>Correct Answers:</h4>';
+        const ul = document.createElement('ul');
+        
+        Object.keys(answers).forEach(id => {
+            const input = document.getElementById(id);
+            const userAnswer = input.value.toLowerCase();
+            const correctAnswer = answers[id].toLowerCase();
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${input.previousElementSibling.textContent}</strong> ${answers[id]}`;
+            ul.appendChild(li);
+
+            if (id.startsWith('res5') || id.startsWith('res6')) {
+                this.checkKeywords(input, 15);
+            } else {
+                 if(userAnswer.includes(correctAnswer.replace('ghz', '').replace('mb', ''))) {
+                    input.style.borderColor = '#2ecc71';
+                    gameManager.addXP(5, `research-${id}`);
+                 } else {
+                    input.style.borderColor = '#e74c3c';
+                 }
+            }
+        });
+        answerDiv.appendChild(ul);
+        answerDiv.style.display = 'block';
+        gameManager.showAchievement('RESEARCH_TASK');
+        gameManager.addXP(20, 'research-complete');
+    },
+    
+    initQuiz() {
+        const quizContainer = document.getElementById('quiz-container');
+        const questions = [
+            {
+                q: "What is the primary function of CPU cache?",
+                a: ["Stores frequently used data for fast access", "Performs mathematical calculations", "Connects the CPU to the GPU", "Manages the operating system"]
+            },
+            {
+                q: "A 4 GHz quad-core CPU can theoretically perform how many cycles per second in total?",
+                a: ["16 billion", "4 billion", "1 billion", "8 billion"]
+            },
+            {
+                q: "Which of the following is NOT a direct way to improve a computer's multitasking performance?",
+                a: ["Increasing the size of the hard drive", "Increasing the amount of RAM", "Upgrading to a CPU with more cores", "Installing an SSD"]
+            },
+            {
+                q: "What does 'parallel processing' refer to?",
+                a: ["Executing multiple instructions at the same time on different cores", "Running one instruction very quickly", "The process of the CPU fetching data from RAM", "The speed of the system clock"]
+            },
+            {
+                q: "Hertz (Hz) is a unit of...",
+                a: ["Frequency", "Memory capacity", "Data transfer speed", "Power consumption"]
+            }
+        ];
+
+        // Shuffle questions
+        questions.sort(() => Math.random() - 0.5);
+
+        let quizHTML = '';
+        questions.forEach((item, index) => {
+            quizHTML += `<h4>${index + 1}. ${item.q}</h4>`;
+            // Shuffle answers
+            item.a.sort(() => Math.random() - 0.5);
+            item.a.forEach(answer => {
+                quizHTML += `<div><input type="radio" name="q${index}" value="${answer}"> <label>${answer}</label></div>`;
+            });
+        });
+        quizContainer.innerHTML = quizHTML;
+        
+        document.getElementById('submit-quiz-btn').onclick = () => {
+            let score = 0;
+            questions.forEach((item, index) => {
+                const radios = document.getElementsByName(`q${index}`);
+                radios.forEach(radio => {
+                    if (radio.checked && radio.value === item.a[0]) { // Correct answer is always first in original array
+                        score++;
+                    }
+                });
+            });
+            
+            const total = questions.length;
+            const percentage = (score / total) * 100;
+            const resultsDiv = document.getElementById('quiz-results');
+            resultsDiv.textContent = `You scored ${score} out of ${total} (${percentage.toFixed(0)}%).`;
+            
+            gameManager.addXP(score * 5, 'quiz-score');
+            if (percentage >= 80) {
+                gameManager.showAchievement('QUIZ_MASTER');
+                gameManager.addXP(30, 'quiz-mastery');
+            }
+        };
+    },
+    
+    initWritingScorer() {
+        document.querySelectorAll('.analyzeBtn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                this.analyzeWriting(e.target.closest('.writingScorer'));
+            });
+        });
+        
+        document.querySelectorAll('.writingScorer textarea').forEach(textarea => {
+            const button = textarea.parentElement.querySelector('.analyzeBtn');
+            button.disabled = true;
+            textarea.addEventListener('input', () => {
+                button.disabled = textarea.value.length < 50;
+            });
+        });
+        
+        document.querySelectorAll('.show-mark-scheme-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const markScheme = e.target.nextElementSibling;
+                markScheme.style.display = 'block';
+            });
+        });
+    },
+
+    analyzeWriting(scorerElement) {
+        const textarea = scorerElement.querySelector('textarea');
+        const text = textarea.value;
+        const keywords = scorerElement.querySelector('input[type=hidden]').value.split(',');
+
+        let score = 100;
+        let successes = [];
+        let improvements = [];
+
+        if (text.trim() === '') {
+            alert("Please enter some text.");
+            return;
+        }
+
+        const cleanedText = text.trim().replace(/\s+/g, ' ');
+        const sentences = cleanedText.match(/[^.!?]+[.!?]+/g) || [cleanedText]; // Handle single sentence without punctuation
+
+        // --- Analysis Functions (nested for simplicity) ---
+        const checkFirstLetterCapital = (txt) => {
+            if (txt.charAt(0) === txt.charAt(0).toUpperCase() && isNaN(txt.charAt(0))) {
+                return { scoreChange: 0, message: 'Started with a capital letter.' };
+            }
+            return { scoreChange: -15, message: 'Your answer should begin with a capital letter.' };
+        };
+
+        const checkSentenceCapitalization = (sentence) => {
+            const firstChar = sentence.trim().charAt(0);
+            if (firstChar !== firstChar.toUpperCase() || !isNaN(firstChar)) {
+                return { scoreChange: -5, message: `A sentence beginning with "${sentence.trim().substring(0, 15)}..." needs a capital letter.` };
+            }
+            return { scoreChange: 0 };
+        };
+        
+        const checkPunctuation = (sentence) => {
+             const lastChar = sentence.trim().slice(-1);
+             if (!['.', '!', '?'].includes(lastChar)) {
+                 return { scoreChange: -10, message: `The sentence "${sentence.trim().substring(0, 15)}..." appears to be missing end punctuation.` };
+             }
+             return { scoreChange: 0 };
+        };
+
+        const checkSentenceLength = (sentence) => {
+            if (sentence.trim().split(' ').length < 4) {
+                return { scoreChange: -10, message: `The sentence "${sentence.trim()}" seems too short. Ensure you write in full sentences.` };
+            }
+            return { scoreChange: 0 };
+        };
+
+        const checkIThink = (txt) => {
+            if (/\bi think\b/i.test(txt)) {
+                return { message: 'For formal answers, try to avoid "I think..." to sound more confident.' };
+            }
+            return {};
+        };
+        
+        const checkKeywords = (txt, kws) => {
+            const lowerText = txt.toLowerCase();
+            const found = kws.filter(kw => lowerText.includes(kw));
+            if (found.length > 0) {
+                return { message: `You included key terms like: ${found.join(', ')}.` };
+            }
+            return {};
+        };
+        
+        // --- Run Checks ---
+        const firstLetterResult = checkFirstLetterCapital(cleanedText);
+        if (firstLetterResult.scoreChange < 0) {
+            score = score + firstLetterResult.scoreChange;
+            improvements.push({ text: firstLetterResult.message });
+        } else {
+            successes.push(firstLetterResult.message);
+        }
+        
+        sentences.forEach(sentence => {
+            if (sentence.trim().length === 0) return;
+            
+            const sentenceCapitalResult = checkSentenceCapitalization(sentence);
+            if (sentenceCapitalResult.scoreChange < 0) {
+                score = score + sentenceCapitalResult.scoreChange;
+                improvements.push({ text: sentenceCapitalResult.message });
+            }
+            
+            const punctuationResult = checkPunctuation(sentence);
+            if (punctuationResult.scoreChange < 0) {
+                score = score + punctuationResult.scoreChange;
+                improvements.push({ text: punctuationResult.message });
+            }
+            
+            const lengthResult = checkSentenceLength(sentence);
+            if (lengthResult.scoreChange < 0) {
+                score = score + lengthResult.scoreChange;
+                improvements.push({ text: lengthResult.message });
+            }
+        });
+        
+        const iThinkResult = checkIThink(cleanedText);
+        if (iThinkResult.message) improvements.push({ text: iThinkResult.message, type: 'suggestion' });
+
+        const keywordResult = checkKeywords(cleanedText, keywords);
+        if (keywordResult.message) successes.push(keywordResult.message);
+
+        // --- Finalize and Display ---
+        score = Math.max(0, score);
+        this.displayResults(scorerElement, score, successes, improvements);
+        gameManager.addXP(25, `exam-practice-${scorerElement.id}`);
+        gameManager.showAchievement('EXAM_READY');
+    },
+    
+    displayResults(scorerElement, score, successes, improvements) {
+        const resultsDashboard = scorerElement.querySelector('.resultsDashboard');
+        const scoreValue = scorerElement.querySelector('.scoreValue');
+        const scoreCircle = scorerElement.querySelector('.scoreCircle');
+        const successList = scorerElement.querySelector('.successList');
+        const improvementList = scorerElement.querySelector('.improvementList');
+
+        scoreValue.textContent = score;
+        if (score > 75) scoreCircle.style.borderColor = '#2ecc71';
+        else if (score > 50) scoreCircle.style.borderColor = '#f39c12';
+        else scoreCircle.style.borderColor = '#e74c3c';
+
+        successList.innerHTML = '';
+        successes.forEach(msg => {
+            const li = document.createElement('li');
+            li.textContent = msg;
+            successList.appendChild(li);
+        });
+
+        improvementList.innerHTML = '';
+        if (improvements.length === 0) {
+            const li = document.createElement('li');
+            li.innerHTML = 'Great work! No major issues found.';
+            improvementList.appendChild(li);
+        } else {
+            improvements.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item.text;
+                if(item.type === 'suggestion') {
+                    li.classList.add('suggestion');
+                }
+                improvementList.appendChild(li);
+            });
+        }
+        
+        resultsDashboard.style.display = 'block';
+        scorerElement.querySelector('.show-mark-scheme-btn').style.display = 'inline-block';
+    },
+    
+    reset(taskKey) {
+        // Reset logic for each task type
+        switch(taskKey) {
+            case 'starter':
+            case 'clockspeed':
+            case 'cache':
+                const taskContainer = document.getElementById(`${taskKey}-task`);
+                const optionsContainer = taskContainer.querySelector('#drag-options-container');
+                taskContainer.querySelectorAll('.drag-item').forEach(item => optionsContainer.appendChild(item));
+                taskContainer.querySelectorAll('.drop-zone').forEach(zone => {
+                    zone.innerHTML = '';
+                    zone.classList.remove('correct', 'incorrect');
+                });
+                break;
+            case 'cores1':
+                document.querySelectorAll('#fill-blanks-container .blank-space').forEach(blank => {
+                    blank.textContent = '';
+                    blank.classList.remove('filled');
+                    blank.style.borderColor = '#3498db';
+                });
+                break;
+            case 'cores2':
+                 document.getElementById('start-sim-btn').disabled = false;
+                 document.getElementById('sim-log').innerHTML = 'Waiting to start...';
+                 document.querySelectorAll('.core').forEach(c => { c.classList.remove('busy'); c.textContent = c.id.split('-').pop().replace('core', 'Core ');});
+                 document.getElementById('reflection1').value = '';
+                 document.getElementById('reflection2').value = '';
+                 break;
+            case 'performance':
+                document.querySelectorAll('#performance-task input[type="radio"]').forEach(radio => {
+                    radio.checked = false;
+                    radio.parentElement.style.color = 'inherit';
+                    radio.parentElement.style.fontWeight = 'normal';
+                });
+                document.getElementById('reason1').value = '';
+                document.getElementById('reason2').value = '';
+                break;
+            case 'calculations':
+                ['1', '2', '3'].forEach(i => {
+                    document.getElementById(`calc${i}`).value = '';
+                    document.getElementById(`calc${i}`).style.borderColor = '#ccc';
+                    this.clearCanvas(`drawing-canvas-${i}`);
+                });
+                break;
+            case 'research':
+                document.querySelectorAll('#research-task input, #research-task textarea').forEach(input => {
+                    input.value = '';
+                    input.style.borderColor = '#ccc';
+                });
+                document.getElementById('research-answers').style.display = 'none';
+                break;
+            case 'quiz':
+                 document.getElementById('quiz-container').innerHTML = '';
+                 document.getElementById('quiz-results').textContent = '';
+                 this.initQuiz();
+                 break;
+            case 'exam1':
+            case 'exam2':
+                const scorer = document.getElementById(taskKey === 'exam1' ? 'writingScorer1' : 'writingScorer2');
+                scorer.querySelector('textarea').value = '';
+                scorer.querySelector('.resultsDashboard').style.display = 'none';
+                scorer.querySelector('.show-mark-scheme-btn').style.display = 'none';
+                scorer.querySelector('.mark-scheme').style.display = 'none';
+                scorer.querySelector('.analyzeBtn').disabled = true;
+                break;
+        }
+    }
+};
+
+
+// --- INITIALIZATION ---
+document.addEventListener('DOMContentLoaded', () => {
+    updateNavigation();
+    gameManager.updateHUD();
+    accessibility.init();
+    feedback.init();
+
+    // Init specific tasks
+    taskManager.initDragAndDrop('starter-task');
+    taskManager.initFillTheBlanks();
+    taskManager.initCoreSim();
+    taskManager.initDragAndDrop('clockspeed-task');
+    taskManager.initDragAndDrop('cache-task');
+    taskManager.initCanvas('drawing-canvas-1');
+    taskManager.initCanvas('drawing-canvas-2');
+    taskManager.initCanvas('drawing-canvas-3');
+    taskManager.initQuiz();
+    taskManager.initWritingScorer();
+});
+
+// --- MGS Platform Integration Script v1.1 ---
+// This script allows the worksheet to communicate with the main MGS CS Hub platform.
+
+/**
+ * Gathers all the current answers from the worksheet.
+ * This function is custom for this specific worksheet to handle all its unique activities.
+ * @returns {object} An object containing the student's work.
+ */
+function getWorksheetState() {
+    console.log("Worksheet: getWorksheetState (custom) is running.");
+    const state = {
+        // Gamification
+        gamification: {
+            xp: gameManager.xp,
+            level: gameManager.level,
+            achievements: Array.from(gameManager.achievements)
+        },
+        // Standard form elements that can be auto-discovered
+        formElements: {},
+        // Custom state for drag-and-drop activities
+        dragAndDrop: {
+            starter: {},
+            clockspeed: {},
+            cache: {}
+        },
+        // Custom state for fill-in-the-blanks
+        fillBlanks: {}
+    };
+
+    // Auto-discover all standard inputs
+    document.querySelectorAll('input, textarea, select').forEach(input => {
+        if (input.id) {
+            if (input.type === 'checkbox' || input.type === 'radio') {
+                state.formElements[input.id] = input.checked;
+            } else {
+                state.formElements[input.id] = input.value;
+            }
+        }
+    });
+
+    // Capture drag-and-drop state
+    document.querySelectorAll('#starter-task .drop-zone').forEach(zone => {
+        if (zone.children.length > 0) state.dragAndDrop.starter[zone.id] = zone.children[0].id;
+    });
+    document.querySelectorAll('#clockspeed-task .drop-zone').forEach(zone => {
+        if (zone.children.length > 0) {
+            if (!state.dragAndDrop.clockspeed[zone.dataset.answer]) state.dragAndDrop.clockspeed[zone.dataset.answer] = [];
+            Array.from(zone.children).forEach(child => state.dragAndDrop.clockspeed[zone.dataset.answer].push(child.id));
+        }
+    });
+    document.querySelectorAll('#cache-task .drop-zone').forEach(zone => {
+        if (zone.children.length > 0) state.dragAndDrop.cache[zone.id] = zone.children[0].id;
+    });
+
+    // Capture fill-in-the-blanks state
+    document.querySelectorAll('.blank-space').forEach(blank => {
+        state.fillBlanks[blank.dataset.answer] = blank.textContent;
+    });
+
+    return state;
+}
+
+/**
+ * Takes a saved state object and restores the worksheet.
+ * This function is custom for this specific worksheet.
+ * @param {object} savedState - The object containing the student's saved work.
+ */
+function loadWorksheetState(savedState) {
+    console.log("Worksheet: loadWorksheetState (custom) is running.");
+    if (!savedState) return;
+
+    // Restore standard form elements
+    if (savedState.formElements) {
+        for (const id in savedState.formElements) {
+            const element = document.getElementById(id);
+            if (element) {
+                if (element.type === 'checkbox' || element.type === 'radio') {
+                    element.checked = savedState.formElements[id];
+                } else {
+                    element.value = savedState.formElements[id];
+                }
+            }
+        }
+    }
+
+    // Restore drag-and-drop state
+    if (savedState.dragAndDrop) {
+        // Starter task
+        if (savedState.dragAndDrop.starter) {
+            for (const zoneId in savedState.dragAndDrop.starter) {
+                const zone = document.getElementById(zoneId);
+                const item = document.getElementById(savedState.dragAndDrop.starter[zoneId]);
+                if (zone && item) zone.appendChild(item);
+            }
+        }
+        // Clockspeed task
+        if (savedState.dragAndDrop.clockspeed) {
+             for (const zoneAnswer in savedState.dragAndDrop.clockspeed) {
+                const zone = document.querySelector(`#clockspeed-task .drop-zone[data-answer="${zoneAnswer}"]`);
+                savedState.dragAndDrop.clockspeed[zoneAnswer].forEach(itemId => {
+                    const item = document.getElementById(itemId);
+                    if (zone && item) zone.appendChild(item);
+                });
+            }
+        }
+        // Cache task
+        if (savedState.dragAndDrop.cache) {
+            for (const zoneId in savedState.dragAndDrop.cache) {
+                const zone = document.getElementById(zoneId);
+                const item = document.getElementById(savedState.dragAndDrop.cache[zoneId]);
+                if (zone && item) zone.appendChild(item);
+            }
+        }
+    }
+
+    // Restore fill-in-the-blanks state
+    if (savedState.fillBlanks) {
+        for (const answer in savedState.fillBlanks) {
+            const blank = document.querySelector(`.blank-space[data-answer="${answer}"]`);
+            if (blank && savedState.fillBlanks[answer]) {
+                blank.textContent = savedState.fillBlanks[answer];
+                blank.classList.add('filled');
+            }
+        }
+    }
+
+    // Restore gamification state
+    if (savedState.gamification) {
+        gameManager.xp = savedState.gamification.xp || 0;
+        gameManager.level = savedState.gamification.level || 1;
+        gameManager.achievements = new Set(savedState.gamification.achievements || []);
+        gameManager.updateHUD();
+    }
+}
+
+// --- Communication Listener ---
+window.addEventListener('message', (event) => {
+    if (event.source !== parent) return;
+    const message = event.data;
+    if (message.type === 'getWorksheetState') {
+        const currentState = getWorksheetState();
+        parent.postMessage({ type: 'worksheetStateResponse', payload: currentState }, event.origin);
+    }
+    if (message.type === 'loadWorksheetState') {
+        loadWorksheetState(message.payload);
+    }
+});
+</script>
+</body>
+</html>
