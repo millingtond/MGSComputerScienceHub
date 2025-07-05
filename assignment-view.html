@@ -3,24 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assignment View - MGS CS Hub</title>
+    <title>Mark Assignment - MGS CS Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        #markingModal { transition: opacity 0.3s ease; }
+        /* Custom style for the student work iframe to ensure it fills the container */
+        #studentWorkFrame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-100">
 
     <!-- Navigation Bar -->
-    <nav class="bg-white shadow-md">
+    <nav class="bg-white shadow-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
                     <a id="backButton" href="#" class="text-indigo-600 hover:text-indigo-800 flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-                        Back to Class View
+                        Back to Progress View
                     </a>
                 </div>
                 <div class="flex items-center">
@@ -33,71 +38,80 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-        <div id="assignmentHeader" class="mb-8">
-            <h1 class="text-4xl font-bold text-gray-800">Loading Assignment...</h1>
-            <p id="classTitle" class="text-lg text-gray-600 mt-1"></p>
+    <main class="max-w-screen-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div id="page-loading" class="text-center">
+            <svg class="animate-spin h-8 w-8 text-indigo-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-2 text-gray-600">Loading assignment...</p>
         </div>
 
-        <!-- Student Submissions List -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <div id="submissionListContainer">
-                <div id="submissionLoadingState" class="text-center p-8">
-                     <svg class="animate-spin h-8 w-8 text-indigo-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <p class="mt-2 text-gray-500">Loading student submissions...</p>
+        <div id="page-content" class="hidden">
+            <!-- Header -->
+            <div id="assignmentHeader" class="mb-6">
+                <h1 id="worksheetTitle" class="text-3xl font-bold text-gray-800"></h1>
+                <p id="studentIdentifier" class="text-lg text-gray-600 mt-1"></p>
+            </div>
+
+            <!-- Two-column Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-200px)]">
+                <!-- Left Column: Student's Work -->
+                <div class="lg:col-span-2 bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                    <div class="p-4 bg-gray-50 border-b border-gray-200">
+                        <h2 class="text-xl font-semibold text-gray-700">Student Submission</h2>
+                    </div>
+                    <div id="studentWorkContainer" class="flex-grow relative">
+                         <div id="worksheetLoading" class="absolute inset-0 flex items-center justify-center bg-white">
+                            <p class="text-gray-500">Loading worksheet...</p>
+                        </div>
+                        <iframe id="studentWorkFrame" class="hidden"></iframe>
+                    </div>
                 </div>
-                <!-- Table will be inserted here -->
+
+                <!-- Right Column: Marking Panel -->
+                <div class="lg:col-span-1 bg-white rounded-lg shadow-md flex flex-col">
+                    <div class="p-4 bg-gray-50 border-b border-gray-200">
+                        <h2 class="text-xl font-semibold text-gray-700">Marking & Feedback</h2>
+                    </div>
+                    <form id="markingForm" class="p-6 space-y-6 flex-grow flex flex-col">
+                        <div class="flex-grow space-y-6">
+                            <div>
+                                <label for="feedbackInput" class="block text-sm font-medium text-gray-700">Feedback</label>
+                                <textarea id="feedbackInput" rows="8" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                            </div>
+                            <div>
+                                <label for="markInput" class="block text-sm font-medium text-gray-700">Mark / Grade</label>
+                                <input type="text" id="markInput" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                             <p id="saveStatus" class="text-sm text-center text-gray-500 mb-2 h-5"></p>
+                            <button type="submit" id="saveFeedbackButton" class="w-full py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 font-semibold transition-colors">
+                                Save and Mark as Complete
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </main>
-
-    <!-- Marking Modal -->
-    <div id="markingModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center hidden z-50">
-        <div class="relative mx-auto p-8 border w-full max-w-2xl shadow-lg rounded-xl bg-white">
-            <h3 id="markingModalTitle" class="text-2xl font-bold text-gray-900 mb-4">Mark Submission</h3>
-            <form id="markingForm">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Student's Work</label>
-                        <div id="studentWorkDisplay" class="mt-1 p-3 w-full h-48 overflow-y-auto bg-gray-100 border border-gray-300 rounded-md font-mono text-sm"></div>
-                    </div>
-                    <div>
-                        <label for="feedbackInput" class="block text-sm font-medium text-gray-700">Feedback</label>
-                        <textarea id="feedbackInput" rows="4" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                    </div>
-                    <div>
-                        <label for="markInput" class="block text-sm font-medium text-gray-700">Mark / Grade</label>
-                        <input type="text" id="markInput" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-                </div>
-                <div class="flex items-center justify-end space-x-4 pt-6">
-                    <button id="closeModalButton" type="button" class="py-2 px-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancel</button>
-                    <button type="submit" id="saveFeedbackButton" class="py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400">Save Feedback</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Firebase Configuration ---
-const firebaseConfig = {
-  apiKey: "AIzaSyB5J6kLg1N8Sul_zE_wHo1OiuDDwsuix2A",
-  authDomain: "mgscompsci-dda86.firebaseapp.com",
-  projectId: "mgscompsci-dda86",
-  storageBucket: "mgscompsci-dda86.firebasestorage.app",
-  messagingSenderId: "850907435330",
-  appId: "1:850907435330:web:735c3d1a5e4a483a9238db"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyB5J6kLg1N8Sul_zE_wHo1OiuDDwsuix2A",
+            authDomain: "mgscompsci-dda86.firebaseapp.com",
+            projectId: "mgscompsci-dda86",
+            storageBucket: "mgscompsci-dda86.firebasestorage.app",
+            messagingSenderId: "850907435330",
+            appId: "1:850907435330:web:735c3d1a5e4a483a9238db"
+        };
 
-        // --- App Initialization ---
         let app, auth, db;
         try {
             app = initializeApp(firebaseConfig);
@@ -108,172 +122,121 @@ const firebaseConfig = {
             document.body.innerHTML = '<div class="text-red-500 text-center p-8">Error connecting to platform.</div>';
         }
 
-        // --- DOM References ---
         const logoutButton = document.getElementById('logoutButton');
-        const assignmentHeader = document.getElementById('assignmentHeader');
-        const classTitle = document.getElementById('classTitle');
-        const submissionListContainer = document.getElementById('submissionListContainer');
         const backButton = document.getElementById('backButton');
-        const markingModal = document.getElementById('markingModal');
-        const markingModalTitle = document.getElementById('markingModalTitle');
-        const studentWorkDisplay = document.getElementById('studentWorkDisplay');
+        const pageLoadingDiv = document.getElementById('page-loading');
+        const pageContentDiv = document.getElementById('page-content');
+        const worksheetTitleEl = document.getElementById('worksheetTitle');
+        const studentIdentifierEl = document.getElementById('studentIdentifier');
+        const studentWorkFrame = document.getElementById('studentWorkFrame');
+        const worksheetLoadingDiv = document.getElementById('worksheetLoading');
         const feedbackInput = document.getElementById('feedbackInput');
         const markInput = document.getElementById('markInput');
         const markingForm = document.getElementById('markingForm');
-        const closeModalButton = document.getElementById('closeModalButton');
+        const saveFeedbackButton = document.getElementById('saveFeedbackButton');
+        const saveStatus = document.getElementById('saveStatus');
 
-        // --- State ---
-        let currentClassId = null;
-        let currentWorksheetId = null;
-        let activeAssignmentIdForMarking = null;
+        let currentAssignmentId = null;
+        let autoSaveTimer = null;
 
-        /**
-         * Fetches all necessary data and renders the page.
-         */
-        async function initializePage() {
-            const urlParams = new URLSearchParams(window.location.search);
-            currentClassId = urlParams.get('classId');
-            currentWorksheetId = urlParams.get('worksheetId');
-            
-            backButton.href = `./class-view.html?id=${currentClassId}`;
-
-            if (!currentClassId || !currentWorksheetId) {
-                assignmentHeader.innerHTML = `<h1 class="text-4xl font-bold text-red-500">Error: Missing Class or Worksheet ID.</h1>`;
-                return;
-            }
-
+        async function initializePage(classId, worksheetId, assignmentId) {
+            currentAssignmentId = assignmentId;
             try {
-                const [classDoc, worksheetDoc, studentsSnapshot, assignmentsSnapshot] = await Promise.all([
-                    getDoc(doc(db, "classes", currentClassId)),
-                    getDoc(doc(db, "worksheets", currentWorksheetId)),
-                    getDocs(query(collection(db, `/artifacts/default-app-id/public/data/students`), where("classId", "==", currentClassId))),
-                    getDocs(query(collection(db, "assignments"), where("classId", "==", currentClassId), where("worksheetId", "==", currentWorksheetId)))
+                const [classDoc, worksheetDoc, assignmentDoc] = await Promise.all([
+                    getDoc(doc(db, "classes", classId)),
+                    getDoc(doc(db, "worksheets", worksheetId)),
+                    getDoc(doc(db, "assignments", assignmentId))
                 ]);
 
-                if (!classDoc.exists() || !worksheetDoc.exists()) throw new Error("Class or Worksheet not found.");
+                if (!classDoc.exists() || !worksheetDoc.exists() || !assignmentDoc.exists()) {
+                    throw new Error("Required data not found (Class, Worksheet, or Assignment).");
+                }
 
-                assignmentHeader.innerHTML = `<h1 class="text-4xl font-bold text-gray-800">${worksheetDoc.data().title}</h1>`;
-                classTitle.textContent = `Submissions for ${classDoc.data().className}`;
+                const assignmentData = assignmentDoc.data();
+                const studentUID = assignmentData.studentUID;
 
-                const students = studentsSnapshot.docs.map(d => ({ id: d.data().studentUID, ...d.data() }));
-                const assignmentMap = new Map(assignmentsSnapshot.docs.map(a => [a.data().studentUID, { id: a.id, ...a.data() }]));
+                const studentsRef = collection(db, `/artifacts/default-app-id/public/data/students`);
+                const q = query(studentsRef, where("studentUID", "==", studentUID));
+                const studentQuerySnapshot = await getDocs(q);
+                const studentUsername = studentQuerySnapshot.empty ? "Unknown Student" : studentQuerySnapshot.docs[0].data().username;
 
-                renderSubmissions(students, assignmentMap);
+                worksheetTitleEl.textContent = worksheetDoc.data().title;
+                studentIdentifierEl.textContent = `Submission by: ${studentUsername}`;
+                
+                feedbackInput.value = assignmentData.feedback || "";
+                markInput.value = assignmentData.mark || "";
+
+                studentWorkFrame.src = worksheetDoc.data().worksheetURL;
+                studentWorkFrame.onload = () => {
+                    worksheetLoadingDiv.classList.add('hidden');
+                    studentWorkFrame.classList.remove('hidden');
+                    if (assignmentData.studentWork) {
+                        studentWorkFrame.contentWindow.postMessage({ 
+                            type: 'loadWorksheetState', 
+                            payload: assignmentData.studentWork 
+                        }, '*');
+                    }
+                };
+
+                pageLoadingDiv.classList.add('hidden');
+                pageContentDiv.classList.remove('hidden');
 
             } catch (error) {
                 console.error("Error loading assignment view:", error);
-                submissionListContainer.innerHTML = `<p class="text-red-500 p-6">Error loading data: ${error.message}</p>`;
-            }
-        }
-
-        function renderSubmissions(students, assignmentMap) {
-            let tableHtml = `<table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Username</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mark</th>
-                <th scope="col" class="relative px-6 py-3"><span class="sr-only">Actions</span></th>
-                </tr></thead><tbody id="submission-tbody" class="bg-white divide-y divide-gray-200">`;
-
-            if (students.length === 0) {
-                tableHtml += `<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No students found in this class.</td></tr>`;
-            } else {
-                students.forEach(student => {
-                    const assignment = assignmentMap.get(student.id);
-                    const status = assignment ? assignment.status : "Not Assigned";
-                    const mark = assignment?.mark || "Not Marked";
-
-                    let statusBadge;
-                    switch(status) {
-                        case 'Completed': statusBadge = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Completed</span>`; break;
-                        case 'In Progress': statusBadge = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">In Progress</span>`; break;
-                        default: statusBadge = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Not Started</span>`;
-                    }
-                    
-                    const actionButton = assignment 
-                        ? `<button data-assignment-id="${assignment.id}" data-student-name="${student.username}" class="view-mark-btn text-indigo-600 hover:text-indigo-900">View & Mark</button>`
-                        : `<span class="text-gray-400">No Submission</span>`;
-
-                    tableHtml += `<tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${student.username}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${statusBadge}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${mark}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">${actionButton}</td>
-                    </tr>`;
-                });
-            }
-
-            tableHtml += `</tbody></table>`;
-            submissionListContainer.innerHTML = tableHtml;
-        }
-
-        async function openMarkingModal(assignmentId, studentName) {
-            activeAssignmentIdForMarking = assignmentId;
-            markingForm.reset();
-            markingModalTitle.textContent = `Mark Submission for ${studentName}`;
-            studentWorkDisplay.textContent = "Loading student work...";
-            markingModal.classList.remove('hidden');
-
-            const assignmentRef = doc(db, "assignments", assignmentId);
-            const assignmentSnap = await getDoc(assignmentRef);
-
-            if (assignmentSnap.exists()) {
-                const data = assignmentSnap.data();
-                studentWorkDisplay.textContent = data.studentWork || "Student did not submit any work.";
-                feedbackInput.value = data.feedback || "";
-                markInput.value = data.mark || "";
-            } else {
-                studentWorkDisplay.textContent = "Error: Could not find assignment.";
+                document.body.innerHTML = `<div class="text-red-500 text-center p-8">Error loading page: ${error.message}</div>`;
             }
         }
 
         async function handleSaveFeedback(event) {
             event.preventDefault();
-            if (!activeAssignmentIdForMarking) return;
+            if (!currentAssignmentId) return;
 
-            const saveButton = document.getElementById('saveFeedbackButton');
-            saveButton.disabled = true;
-            saveButton.textContent = 'Saving...';
+            saveFeedbackButton.disabled = true;
+            saveFeedbackButton.textContent = 'Saving...';
+            saveStatus.textContent = '';
 
-            const assignmentRef = doc(db, "assignments", activeAssignmentIdForMarking);
             try {
+                const assignmentRef = doc(db, "assignments", currentAssignmentId);
                 await updateDoc(assignmentRef, {
                     feedback: feedbackInput.value,
                     mark: markInput.value,
-                    status: 'Completed' // Ensure status is marked as complete
+                    status: 'Marked'
                 });
-                markingModal.classList.add('hidden');
-                // Refresh the list to show the new mark
-                initializePage(); 
+                
+                saveStatus.textContent = 'Feedback saved successfully!';
+                setTimeout(() => {
+                    saveStatus.textContent = '';
+                }, 3000);
+
             } catch (error) {
                 console.error("Error saving feedback:", error);
+                saveStatus.textContent = 'Error saving feedback.';
                 alert("Failed to save feedback.");
             } finally {
-                saveButton.disabled = false;
-                saveButton.textContent = 'Save Feedback';
-                activeAssignmentIdForMarking = null;
+                saveFeedbackButton.disabled = false;
+                saveFeedbackButton.textContent = 'Save and Mark as Complete';
             }
         }
 
-        // --- Event Delegation for dynamically created buttons ---
-        submissionListContainer.addEventListener('click', (event) => {
-            if (event.target.classList.contains('view-mark-btn')) {
-                const assignmentId = event.target.dataset.assignmentId;
-                const studentName = event.target.dataset.studentName;
-                openMarkingModal(assignmentId, studentName);
-            }
-        });
-
-        // --- Authentication Check and Page Load ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                initializePage();
+                const urlParams = new URLSearchParams(window.location.search);
+                const classId = urlParams.get('classId');
+                const worksheetId = urlParams.get('worksheetId');
+                const assignmentId = urlParams.get('assignmentId');
+                
+                if (classId && worksheetId && assignmentId) {
+                    backButton.href = `./class-progress.html?classId=${classId}&worksheetId=${worksheetId}`;
+                    initializePage(classId, worksheetId, assignmentId);
+                } else {
+                    document.body.innerHTML = '<div class="text-red-500 text-center p-8">Error: Missing required IDs in URL.</div>';
+                }
             } else {
                 window.location.href = './teacher-login.html';
             }
         });
 
         logoutButton.addEventListener('click', () => signOut(auth));
-        closeModalButton.addEventListener('click', () => markingModal.classList.add('hidden'));
         markingForm.addEventListener('submit', handleSaveFeedback);
 
     </script>

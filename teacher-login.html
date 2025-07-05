@@ -12,6 +12,11 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+        /* Style for invalid input fields */
+        .invalid-input {
+            border-color: #ef4444; /* red-500 */
+            box-shadow: 0 0 0 2px #fecaca; /* red-200 */
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
@@ -25,7 +30,7 @@
         </div>
 
         <!-- Login Form -->
-        <form id="loginForm" class="mt-8 space-y-6">
+        <form id="loginForm" class="mt-8 space-y-6" novalidate>
             <!-- Email Input -->
             <div>
                 <label for="email" class="text-sm font-medium text-gray-700">Email Address</label>
@@ -65,12 +70,9 @@
 
     <!-- Firebase SDKs -->
     <script type="module">
-        // Import necessary Firebase functions for authentication
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // --- Firebase Configuration ---
-        // FIX: Updated to the correct Firebase config object.
         const firebaseConfig = {
             apiKey: "AIzaSyB5J6kLg1N8Sul_zE_wHo1OiuDDwsuix2A",
             authDomain: "mgscompsci-dda86.firebaseapp.com",
@@ -80,7 +82,6 @@
             appId: "1:850907435330:web:735c3d1a5e4a483a9238db"
         };
 
-        // --- App Initialization ---
         let app, auth;
         try {
             app = initializeApp(firebaseConfig);
@@ -93,15 +94,12 @@
             errorMessageDiv.classList.remove('hidden');
         }
         
-        // --- DOM Element References ---
         const loginForm = document.getElementById('loginForm');
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
         const submitButton = document.getElementById('submitButton');
         const errorMessageDiv = document.getElementById('errorMessage');
 
-        // --- Authentication State Observer ---
-        // This handles the case where a user is already logged in and revisits the page.
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 console.log("User is already signed in. Redirecting...");
@@ -109,36 +107,54 @@
             }
         });
 
-        // --- Login Form Logic ---
+        function showLoginError(message) {
+            errorMessageDiv.textContent = message;
+            errorMessageDiv.classList.remove('hidden');
+            submitButton.disabled = false;
+            submitButton.textContent = 'Sign in';
+        }
+
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             
             submitButton.disabled = true;
             submitButton.textContent = 'Signing in...';
             errorMessageDiv.classList.add('hidden');
+            emailInput.classList.remove('invalid-input');
+            passwordInput.classList.remove('invalid-input');
 
             const email = emailInput.value;
             const password = passwordInput.value;
 
+            // --- Client-side validation ---
+            if (!password) {
+                passwordInput.classList.add('invalid-input');
+                showLoginError('Please enter your password.');
+                return;
+            }
+            // A simple regex to check for a valid email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !emailRegex.test(email)) {
+                emailInput.classList.add('invalid-input');
+                showLoginError('Please enter a valid email address.');
+                return;
+            }
+
             try {
-                // Use Firebase's built-in function to sign in
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 console.log("Teacher login successful:", userCredential.user.uid);
-                
-                // Explicitly redirect on successful login
                 window.location.href = './teacher-dashboard.html';
 
             } catch (error) {
                 console.error("Teacher Login Error:", error.code, error.message);
-                let userMessage = "An unknown error occurred.";
+                let userMessage;
                 switch (error.code) {
-                    case 'auth/invalid-email':
-                        userMessage = "Please enter a valid email address.";
-                        break;
                     case 'auth/user-not-found':
                     case 'auth/wrong-password':
                     case 'auth/invalid-credential':
                         userMessage = "Invalid email or password. Please try again.";
+                        emailInput.classList.add('invalid-input');
+                        passwordInput.classList.add('invalid-input');
                         break;
                     case 'auth/too-many-requests':
                         userMessage = "Access to this account has been temporarily disabled due to many failed login attempts. You can reset your password or try again later.";
@@ -147,11 +163,7 @@
                         userMessage = "Login failed. Please check your credentials and try again.";
                         break;
                 }
-                errorMessageDiv.textContent = userMessage;
-                errorMessageDiv.classList.remove('hidden');
-                
-                submitButton.disabled = false;
-                submitButton.textContent = 'Sign in';
+                showLoginError(userMessage);
             }
         });
 

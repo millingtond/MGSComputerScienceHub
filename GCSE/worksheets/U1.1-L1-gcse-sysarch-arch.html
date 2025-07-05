@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Von Neumann Architecture & FDE Cycle - Interactive Worksheet</title>
+    <!-- NOTE: html2canvas is no longer needed in the worksheet itself -->
     <style>
         :root {
             --primary-color: #2563eb;
@@ -72,6 +73,10 @@
             height: 200%;
             background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
             animation: pulse 3s ease-in-out infinite;
+        }
+        
+        .header.hide-before::before {
+            display: none !important;
         }
 
         @keyframes pulse {
@@ -1474,6 +1479,7 @@
     </div>
 
     <script>
+        // --- START OF WORKSHEET-SPECIFIC SCRIPT ---
         // Global variables
         let xp = 0;
         let level = 0;
@@ -1563,12 +1569,10 @@
             });
             event.target.classList.add('active');
             
-            // Vibrate on mobile
             if ('vibrate' in navigator) {
                 navigator.vibrate(10);
             }
             
-            // Initialize section-specific content
             if (sectionId === 'summary') {
                 initializeSummaryQuiz();
             }
@@ -1582,8 +1586,6 @@
             draggables.forEach(draggable => {
                 draggable.addEventListener('dragstart', handleDragStart);
                 draggable.addEventListener('dragend', handleDragEnd);
-                
-                // Touch support
                 draggable.addEventListener('touchstart', handleTouchStart, {passive: false});
                 draggable.addEventListener('touchmove', handleTouchMove, {passive: false});
                 draggable.addEventListener('touchend', handleTouchEnd);
@@ -1624,7 +1626,6 @@
             }
         }
         
-        // Touch support for drag and drop
         let touchItem = null;
         let touchOffset = {x: 0, y: 0};
         
@@ -1664,7 +1665,6 @@
             e.preventDefault();
         }
         
-        // Starter Activity
         function checkStarterActivity() {
             const dropZones = document.querySelectorAll('#starter .drop-zone');
             let correct = 0;
@@ -1709,68 +1709,23 @@
             document.getElementById('starterFeedback').innerHTML = '';
         }
         
-        // --- REVISED VON NEUMANN ANIMATION LOGIC ---
         let vonNeumannStep = 0;
         
         const vonNeumannSteps = [
-            {
-                description: "FETCH: The Program Counter (PC) holds the address of the next instruction (0x0000).",
-                highlight: ['pc'],
-                pcValue: '0x0000', marValue: '----', mdrValue: '----', accValue: '0'
-            },
-            {
-                description: "FETCH: Address from PC is copied to the Memory Address Register (MAR).",
-                highlight: ['pc', 'mar'],
-                pcValue: '0x0000', marValue: '0x0000', mdrValue: '----', accValue: '0'
-            },
-            {
-                description: "FETCH: The address is sent from the MAR to RAM via the Address Bus.",
-                highlight: ['mar', 'addressBus'],
-                busAnimation: { bus: 'addressBus', direction: 'forward' },
-                pcValue: '0x0000', marValue: '0x0000', mdrValue: '----', accValue: '0'
-            },
-            {
-                description: "FETCH: The Control Unit sends a 'read' signal via the Control Bus.",
-                highlight: ['controlUnit', 'controlBus', 'mem0'],
-                busAnimation: { bus: 'controlBus', direction: 'forward' },
-                pcValue: '0x0000', marValue: '0x0000', mdrValue: '----', accValue: '0'
-            },
-            {
-                description: "FETCH: Instruction 'LOAD 5' is sent from RAM to the MDR via the Data Bus.",
-                highlight: ['mdr', 'dataBus', 'mem0'],
-                busAnimation: { bus: 'dataBus', direction: 'backward' },
-                pcValue: '0x0000', marValue: '0x0000', mdrValue: 'LOAD 5', accValue: '0'
-            },
-            {
-                description: "FETCH COMPLETE: The Program Counter is incremented for the next cycle.",
-                highlight: ['pc'],
-                pcValue: '0x0001', marValue: '0x0000', mdrValue: 'LOAD 5', accValue: '0'
-            },
-            {
-                description: "DECODE: The Control Unit decodes the instruction 'LOAD 5' from the MDR.",
-                highlight: ['controlUnit', 'mdr'],
-                pcValue: '0x0001', marValue: '0x0000', mdrValue: 'LOAD 5', accValue: '0'
-            },
-            {
-                description: "EXECUTE: The value 5 is loaded into the Accumulator (ACC). The ALU might be involved.",
-                highlight: ['controlUnit', 'acc', 'alu'],
-                pcValue: '0x0001', marValue: '0x0000', mdrValue: 'LOAD 5', accValue: '5'
-            },
-            {
-                description: "Cycle 1 Complete. Ready for next instruction 'ADD 3'. The Clock synchronizes all operations.",
-                highlight: ['pc', 'clock'],
-                pcValue: '0x0001', marValue: '----', mdrValue: '----', accValue: '5'
-            },
-            {
-                description: "Demonstrating a 'STORE' operation: Data (e.g., '8') would be sent from CPU to Memory.",
-                highlight: ['mdr', 'dataBus', 'mem5'],
-                busAnimation: { bus: 'dataBus', direction: 'forward' },
-                pcValue: '0x0002', marValue: '0x0005', mdrValue: '8', accValue: '8', mem5Value: '8'
-            }
+            { description: "FETCH: The Program Counter (PC) holds the address of the next instruction (0x0000).", highlight: ['pc'], pcValue: '0x0000', marValue: '----', mdrValue: '----', accValue: '0' },
+            { description: "FETCH: Address from PC is copied to the Memory Address Register (MAR).", highlight: ['pc', 'mar'], pcValue: '0x0000', marValue: '0x0000', mdrValue: '----', accValue: '0' },
+            { description: "FETCH: The address is sent from the MAR to RAM via the Address Bus.", highlight: ['mar', 'addressBus'], busAnimation: { bus: 'addressBus', direction: 'forward' }, pcValue: '0x0000', marValue: '0x0000', mdrValue: '----', accValue: '0' },
+            { description: "FETCH: The Control Unit sends a 'read' signal via the Control Bus.", highlight: ['controlUnit', 'controlBus', 'mem0'], busAnimation: { bus: 'controlBus', direction: 'forward' }, pcValue: '0x0000', marValue: '0x0000', mdrValue: '----', accValue: '0' },
+            { description: "FETCH: Instruction 'LOAD 5' is sent from RAM to the MDR via the Data Bus.", highlight: ['mdr', 'dataBus', 'mem0'], busAnimation: { bus: 'dataBus', direction: 'backward' }, pcValue: '0x0000', marValue: '0x0000', mdrValue: 'LOAD 5', accValue: '0' },
+            { description: "FETCH COMPLETE: The Program Counter is incremented for the next cycle.", highlight: ['pc'], pcValue: '0x0001', marValue: '0x0000', mdrValue: 'LOAD 5', accValue: '0' },
+            { description: "DECODE: The Control Unit decodes the instruction 'LOAD 5' from the MDR.", highlight: ['controlUnit', 'mdr'], pcValue: '0x0001', marValue: '0x0000', mdrValue: 'LOAD 5', accValue: '0' },
+            { description: "EXECUTE: The value 5 is loaded into the Accumulator (ACC). The ALU might be involved.", highlight: ['controlUnit', 'acc', 'alu'], pcValue: '0x0001', marValue: '0x0000', mdrValue: 'LOAD 5', accValue: '5' },
+            { description: "Cycle 1 Complete. Ready for next instruction 'ADD 3'. The Clock synchronizes all operations.", highlight: ['pc', 'clock'], pcValue: '0x0001', marValue: '----', mdrValue: '----', accValue: '5' },
+            { description: "Demonstrating a 'STORE' operation: Data (e.g., '8') would be sent from CPU to Memory.", highlight: ['mdr', 'dataBus', 'mem5'], busAnimation: { bus: 'dataBus', direction: 'forward' }, pcValue: '0x0002', marValue: '0x0005', mdrValue: '8', accValue: '8', mem5Value: '8' }
         ];
         
         function startVonNeumannAnimation() {
-            resetVonNeumannAnimation(false); // Soft reset
+            resetVonNeumannAnimation(false);
             vonNeumannStep = 0;
             executeVonNeumannStep(0);
             document.getElementById('startAnimBtn').style.display = 'none';
@@ -1793,37 +1748,27 @@
             if (!busElement) return;
             const packet = busElement.querySelector('.packet');
             if (!packet) return;
-
-            // Clone and replace to restart animation if it's already running
             const newPacket = packet.cloneNode(true);
             packet.parentNode.replaceChild(newPacket, packet);
-            
             newPacket.classList.add(direction === 'forward' ? 'animate-forward' : 'animate-backward');
         }
 
         function executeVonNeumannStep(stepIndex) {
             const step = vonNeumannSteps[stepIndex];
-            
-            // Update status
-            const statusText = `<strong>Step ${stepIndex + 1}/${vonNeumannSteps.length}:</strong> ${step.description}`;
-            document.getElementById('architectureStatus').innerHTML = `<span>${statusText}</span>`;
-            
-            // Clear all highlights
+            document.getElementById('architectureStatus').innerHTML = `<span><strong>Step ${stepIndex + 1}/${vonNeumannSteps.length}:</strong> ${step.description}</span>`;
             document.querySelectorAll('.architecture-component, .register-item, .bus, .mem-value').forEach(el => {
                 const parent = el.closest('.architecture-component, .register-item, .bus');
                 if (parent) {
-                    parent.style.borderColor = ''; // Reset to CSS default
+                    parent.style.borderColor = '';
                     parent.style.boxShadow = '';
                     parent.style.transform = '';
                 }
                 if (el.classList.contains('mem-value')) {
-                    el.style.backgroundColor = '';
-                    el.style.borderRadius = '';
-                    el.style.padding = '';
+                   el.style.backgroundColor = '';
+                   el.style.borderRadius = '';
+                   el.style.padding = '';
                 }
             });
-            
-            // Apply highlights
             step.highlight.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {
@@ -1840,19 +1785,13 @@
                     }
                 }
             });
-            
-            // Update register values
             if (step.pcValue) document.getElementById('pcValue').textContent = step.pcValue;
             if (step.marValue) document.getElementById('marValue').textContent = step.marValue;
             if (step.mdrValue) document.getElementById('mdrValue').textContent = step.mdrValue;
             if (step.accValue) document.getElementById('accValue').textContent = step.accValue;
-            
-            // Update memory for STORE demonstration
             if (step.mem5Value) {
                 document.getElementById('mem5').textContent = `[Data: ${step.mem5Value}]`;
             }
-            
-            // Animate bus flow
             if (step.busAnimation) {
                 setTimeout(() => animateBus(step.busAnimation.bus, step.busAnimation.direction), 50);
             }
@@ -1862,8 +1801,6 @@
             vonNeumannStep = 0;
             document.getElementById('startAnimBtn').style.display = 'inline-block';
             document.getElementById('stepAnimBtn').style.display = 'none';
-
-            // Clear highlights and transforms
             document.querySelectorAll('.architecture-component, .register-item, .bus, .mem-value').forEach(el => {
                 el.style.borderColor = '';
                 el.style.boxShadow = '';
@@ -1874,30 +1811,22 @@
                    el.style.padding = '';
                 }
             });
-            
-            // Reset register values
             document.getElementById('pcValue').textContent = '0x0000';
             document.getElementById('marValue').textContent = '----';
             document.getElementById('mdrValue').textContent = '----';
             document.getElementById('accValue').textContent = '0';
-            
             if (fullReset) {
-                document.getElementById('architectureStatus').innerHTML = 
-                    '<span>Click "Start Animation" to see how it works!</span>';
+                document.getElementById('architectureStatus').innerHTML = '<span>Click "Start Animation" to see how it works!</span>';
             }
-            
             document.getElementById('mem5').textContent = '[Data: 0]';
         }
         
-        // Von Neumann Matching
         function checkVonNeumannMatching() {
             const dropZones = document.querySelectorAll('#section1 .drop-zone');
             let correct = 0;
-            
             dropZones.forEach(zone => {
                 const expected = zone.dataset.expected;
                 const dragItem = zone.querySelector('.drag-item');
-                
                 if (dragItem && dragItem.dataset.answer === expected) {
                     zone.classList.add('correct');
                     zone.classList.remove('incorrect');
@@ -1907,10 +1836,8 @@
                     zone.classList.remove('correct');
                 }
             });
-            
             const feedback = document.getElementById('vonNeumannFeedback');
             feedback.innerHTML = `<p><strong>Score: ${correct}/4</strong></p>`;
-            
             if (correct === 4) {
                 feedback.innerHTML += '<p style="color: var(--success-color);">🎉 Excellent! You understand Von Neumann components!</p>';
                 addXP(25, 'Von Neumann Expert');
@@ -1920,39 +1847,29 @@
         function resetVonNeumannMatching() {
             const dragItems = document.getElementById('vonNeumannDragItems');
             const items = document.querySelectorAll('#section1 .drag-item');
-            
             items.forEach(item => {
                 dragItems.appendChild(item);
             });
-            
             document.querySelectorAll('#section1 .drop-zone').forEach(zone => {
                 zone.classList.remove('correct', 'incorrect');
             });
-            
             document.getElementById('vonNeumannFeedback').innerHTML = '';
         }
         
-        // Register Explorer
-        function explainRegister(type) {
-            // This function is for a different section, not implemented here.
-        }
+        function explainRegister(type) { /* Not implemented for this example */ }
         
-        // Register Blanks Check
         function checkRegisterBlanks() {
             const answers = {
                 'blank1': ['program counter', 'pc'],
                 'blank2': ['accumulator', 'acc'],
                 'blank3': ['mdr', 'memory data register']
             };
-            
             let correct = 0;
             const feedback = document.getElementById('blanksFeedback');
             let feedbackHTML = '';
-            
             for (let id in answers) {
                 const input = document.getElementById(id);
                 const userAnswer = input.value.toLowerCase().trim();
-                
                 if (answers[id].some(ans => userAnswer.includes(ans))) {
                     correct++;
                     input.style.borderColor = 'var(--success-color)';
@@ -1960,17 +1877,14 @@
                     input.style.borderColor = 'var(--error-color)';
                 }
             }
-            
             feedbackHTML = `<p><strong>Score: ${correct}/3</strong></p>`;
             if (correct === 3) {
                 feedbackHTML += '<p style="color: var(--success-color);">🎉 Perfect! You know your registers!</p>';
                 addXP(20, 'Register Master');
             }
-            
             feedback.innerHTML = feedbackHTML;
         }
         
-        // FDE Cycle Animation
         let fdeInterval;
         let fdeStage = 0;
         
@@ -1982,14 +1896,11 @@
                 '🔍 DECODE: Control Unit analyzing "LOAD 5" - means load value 5 into Accumulator...',
                 '⚡ EXECUTE: Loading value 5 into Accumulator register. Operation complete!'
             ];
-            
             const examples = [
                 { instruction: 'LOAD 5', pc: '0x0000', mar: '0x0000', mdr: 'LOAD 5', acc: '0' },
                 { instruction: 'LOAD 5', pc: '0x0001', mar: '0x0000', mdr: 'LOAD 5', acc: '0' },
                 { instruction: 'LOAD 5', pc: '0x0001', mar: '0x0000', mdr: 'LOAD 5', acc: '5' }
             ];
-            
-            // Reset all stages
             stages.forEach(stage => {
                 const el = document.getElementById(stage);
                 el.classList.remove('active');
@@ -1998,11 +1909,9 @@
                                      stage === 'decodeStage' ? '#10b981' : '#ef4444';
             });
             document.getElementById('fdeProgress').style.width = '0%';
-            
             const isAutoPlay = document.getElementById('fdeAutoPlay').checked;
             
             function runStage() {
-                // Clear previous active
                 if (fdeStage > 0) {
                     const prevStage = document.getElementById(stages[fdeStage - 1]);
                     prevStage.classList.remove('active');
@@ -2015,22 +1924,13 @@
                     currentStage.style.transform = 'scale(1.02)';
                     currentStage.style.borderWidth = '4px';
                     currentStage.style.boxShadow = '0 0 30px rgba(255, 255, 255, 0.3)';
-                    
-                    // Update status
-                    document.getElementById('cycleStage').innerHTML = 
-                        `<span style="animation: fadeIn 0.5s ease-out;">${stageTexts[fdeStage]}</span>`;
-                    
-                    // Update current instruction
+                    document.getElementById('cycleStage').innerHTML = `<span style="animation: fadeIn 0.5s ease-out;">${stageTexts[fdeStage]}</span>`;
                     const example = examples[fdeStage];
                     document.getElementById('currentInstruction').textContent = example.instruction;
-                    
-                    // Update mini architecture view
                     document.getElementById('miniPC').textContent = example.pc;
                     document.getElementById('miniMAR').textContent = example.mar;
                     document.getElementById('miniMDR').textContent = example.mdr;
                     document.getElementById('miniACC').textContent = example.acc;
-                    
-                    // Animate the changing components
                     if (fdeStage === 0) {
                         document.getElementById('miniMAR').parentElement.style.transform = 'scale(1.1)';
                         document.getElementById('miniMDR').parentElement.style.transform = 'scale(1.1)';
@@ -2046,12 +1946,8 @@
                             document.getElementById('miniACC').parentElement.style.background = '#374151';
                         }, 500);
                     }
-                    
-                    // Update progress bar
                     const progress = ((fdeStage + 1) / stages.length) * 100;
                     document.getElementById('fdeProgress').style.width = progress + '%';
-                    
-                    // Highlight steps within the stage
                     const stageEl = document.getElementById(stages[fdeStage]);
                     const steps = stageEl.querySelectorAll('.step-item');
                     steps.forEach((step, index) => {
@@ -2062,18 +1958,12 @@
                             step.style.transition = 'all 0.3s ease-out';
                         }, index * 200);
                     });
-                    
                     fdeStage++;
-                    
                     if (isAutoPlay && fdeStage < stages.length) {
                         fdeInterval = setTimeout(runStage, 3000);
                     }
                 } else {
-                    // Cycle complete
-                    document.getElementById('cycleStage').innerHTML = 
-                        '<span style="color: #10b981; font-size: 24px;">✅ Cycle Complete! The CPU has executed the LOAD instruction successfully.</span>';
-                    
-                    // Final celebration
+                    document.getElementById('cycleStage').innerHTML = '<span style="color: #10b981; font-size: 24px;">✅ Cycle Complete! The CPU has executed the LOAD instruction successfully.</span>';
                     stages.forEach((stage, index) => {
                         setTimeout(() => {
                             const el = document.getElementById(stage);
@@ -2086,18 +1976,15 @@
                             }, 300);
                         }, index * 150);
                     });
-                    
                     addXP(20, 'FDE Cycle Master');
                 }
             }
-            
             runStage();
         }
         
         function resetFDEAnimation() {
             clearTimeout(fdeInterval);
             fdeStage = 0;
-            
             ['fetchStage', 'decodeStage', 'executeStage'].forEach(stage => {
                 const el = document.getElementById(stage);
                 el.classList.remove('active');
@@ -2106,28 +1993,19 @@
                 el.style.boxShadow = '';
                 el.style.borderColor = stage === 'fetchStage' ? '#f59e0b' : 
                                      stage === 'decodeStage' ? '#10b981' : '#ef4444';
-                
-                // Reset step highlights
                 el.querySelectorAll('.step-item').forEach(step => {
                     step.style.background = '';
                     step.style.padding = '0 0 0 20px';
                 });
             });
-            
             document.getElementById('cycleStage').innerHTML = '<span>🎯 Ready to start the Fetch-Decode-Execute cycle...</span>';
             document.getElementById('fdeProgress').style.width = '0%';
-            
-            // Reset current instruction
             document.getElementById('currentInstruction').textContent = 'Ready to start...';
-            
-            // Reset mini architecture view
             document.getElementById('miniPC').textContent = '0x0000';
             document.getElementById('miniMAR').textContent = '----';
             document.getElementById('miniMDR').textContent = '----';
             document.getElementById('miniACC').textContent = '0';
             document.getElementById('miniMem').textContent = 'LOAD 5';
-            
-            // Reset component styles
             ['miniPC', 'miniMAR', 'miniMDR', 'miniACC'].forEach(id => {
                 const el = document.getElementById(id).parentElement;
                 el.style.transform = 'scale(1)';
@@ -2135,15 +2013,12 @@
             });
         }
         
-        // FDE Sequence Check
         function checkFDESequence() {
             const dropZones = document.querySelectorAll('#fdeDropZones .drop-zone');
             let correct = 0;
-            
             dropZones.forEach(zone => {
                 const expectedOrder = zone.dataset.order;
                 const dragItem = zone.querySelector('.drag-item');
-                
                 if (dragItem && dragItem.dataset.order === expectedOrder) {
                     zone.classList.add('correct');
                     zone.classList.remove('incorrect');
@@ -2153,10 +2028,8 @@
                     zone.classList.remove('correct');
                 }
             });
-            
             const feedback = document.getElementById('fdeSequenceFeedback');
             feedback.innerHTML = `<p><strong>Score: ${correct}/5</strong></p>`;
-            
             if (correct === 5) {
                 feedback.innerHTML += '<p style="color: var(--success-color);">🎉 Perfect sequence! You understand the FDE cycle!</p>';
                 addXP(30, 'FDE Sequencer');
@@ -2168,33 +2041,26 @@
         function resetFDESequence() {
             const dragItems = document.getElementById('fdeSequenceItems');
             const items = document.querySelectorAll('#section3 .drag-item');
-            
             items.forEach(item => {
                 dragItems.appendChild(item);
             });
-            
             document.querySelectorAll('#fdeDropZones .drop-zone').forEach(zone => {
                 zone.classList.remove('correct', 'incorrect');
             });
-            
             document.getElementById('fdeSequenceFeedback').innerHTML = '';
         }
         
-        // Bus Animation
         function showBusAnimation(busType) {
             const animations = {
                 'address': '🏠 Address Bus: Carries memory addresses from CPU to RAM. One-way communication.',
                 'data': '📦 Data Bus: Carries actual data and instructions. Two-way communication.',
                 'control': '🎛️ Control Bus: Carries control signals like read/write commands. Two-way communication.'
             };
-            
             document.getElementById('busAnimation').innerHTML = animations[busType];
             addXP(5, 'Bus Explorer');
         }
         
-        // Quiz Functions
         function selectQuizOption(element, answer) {
-            // Clear other selections
             element.parentElement.querySelectorAll('.quiz-option').forEach(opt => {
                 opt.classList.remove('selected');
             });
@@ -2205,12 +2071,10 @@
         function checkCPURAMQuiz() {
             const selected = document.querySelector('#cpuRamQuiz .quiz-option.selected');
             const feedback = document.getElementById('cpuRamQuizFeedback');
-            
             if (!selected) {
                 feedback.innerHTML = '<p>Please select an answer!</p>';
                 return;
             }
-            
             if (selected.dataset.selected === 'data') {
                 selected.classList.add('correct');
                 feedback.innerHTML = '<p style="color: var(--success-color);">✓ Correct! The Data Bus carries instructions and data.</p>';
@@ -2221,47 +2085,36 @@
             }
         }
         
-        // Mark Scheme Reveal
         function revealMarkScheme(questionNum) {
             const textarea = document.getElementById(`practiceQ${questionNum}`);
             const predictedMarks = document.getElementById(`predictedMarks${questionNum}`);
             const markScheme = document.getElementById(`markScheme${questionNum}`);
-            
-            // Check if answer is sufficient
             const wordCount = textarea.value.trim().split(/\s+/).length;
             const minWords = questionNum === 1 ? 30 : 50;
-            
             if (wordCount < minWords) {
                 alert(`Please write a more detailed answer (at least ${minWords} words) before viewing the mark scheme.`);
                 return;
             }
-            
             if (!predictedMarks.value) {
                 alert('Please enter your predicted marks first.');
                 return;
             }
-            
             markScheme.classList.add('revealed');
             addXP(20, `Question ${questionNum} Attempted`);
-            
-            // Check for keywords and award bonus XP
             const keywords = questionNum === 1 ? 
                 ['stored', 'program', 'memory', 'instructions', 'data'] :
                 ['fetch', 'decode', 'execute', 'pc', 'mar', 'mdr', 'control unit'];
-            
             let keywordsFound = 0;
             keywords.forEach(keyword => {
                 if (textarea.value.toLowerCase().includes(keyword)) {
                     keywordsFound++;
                 }
             });
-            
             if (keywordsFound >= keywords.length * 0.7) {
                 addXP(10, 'Keyword Master');
             }
         }
         
-        // Canvas Drawing
         const canvas = document.getElementById('drawingCanvas');
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
@@ -2278,11 +2131,9 @@
         function draw(e) {
             if (!isDrawing) return;
             e.preventDefault();
-            
             const rect = canvas.getBoundingClientRect();
             const x = (e.clientX || e.touches[0].clientX) - rect.left;
             const y = (e.clientY || e.touches[0].clientY) - rect.top;
-            
             ctx.lineTo(x, y);
             ctx.stroke();
         }
@@ -2299,127 +2150,48 @@
         canvas.addEventListener('mousemove', draw);
         canvas.addEventListener('mouseup', stopDrawing);
         canvas.addEventListener('mouseout', stopDrawing);
-        
         canvas.addEventListener('touchstart', startDrawing, {passive: false});
         canvas.addEventListener('touchmove', draw, {passive: false});
         canvas.addEventListener('touchend', stopDrawing);
         
-        // Extension Activities
         function submitExtension(num) {
             const textarea = document.getElementById(`extensionAnswer${num}`);
             const wordCount = textarea.value.trim().split(/\s+/).length;
             const feedback = document.getElementById('extensionFeedback');
-            
             if (wordCount < 50) {
                 feedback.innerHTML = '<p>Please provide a more detailed response (at least 50 words).</p>';
                 return;
             }
-            
             feedback.innerHTML = '<p style="color: var(--success-color);">🌟 Excellent extension work! You\'re going beyond the specification!</p>';
             addXP(40, `Extension ${num} Complete`);
         }
         
-        // Summary Quiz Initialization
         function initializeSummaryQuiz() {
             quizQuestions = [
-                {
-                    question: "What is the stored program concept?",
-                    options: [
-                        "Programs are stored on hard drives",
-                        "Instructions and data are stored in the same memory",
-                        "Programs are stored in ROM",
-                        "Instructions are stored separately from data"
-                    ],
-                    correct: 1
-                },
-                {
-                    question: "Which register holds the address of the next instruction?",
-                    options: ["MAR", "MDR", "Program Counter", "Accumulator"],
-                    correct: 2
-                },
-                {
-                    question: "What does the ALU do?",
-                    options: [
-                        "Stores data permanently",
-                        "Performs mathematical and logical operations",
-                        "Controls data flow",
-                        "Fetches instructions"
-                    ],
-                    correct: 1
-                },
-                {
-                    question: "In which order does the FDE cycle occur?",
-                    options: [
-                        "Execute, Decode, Fetch",
-                        "Decode, Fetch, Execute",
-                        "Fetch, Decode, Execute",
-                        "Fetch, Execute, Decode"
-                    ],
-                    correct: 2
-                },
-                {
-                    question: "What type of memory is cache?",
-                    options: [
-                        "Slow memory in RAM",
-                        "Fast memory on the CPU",
-                        "Permanent storage",
-                        "Virtual memory"
-                    ],
-                    correct: 1
-                },
-                {
-                    question: "Which bus carries control signals?",
-                    options: ["Address Bus", "Data Bus", "Control Bus", "System Bus"],
-                    correct: 2
-                },
-                {
-                    question: "What does MDR stand for?",
-                    options: [
-                        "Memory Data Register",
-                        "Memory Direct Register",
-                        "Main Data Register",
-                        "Memory Decode Register"
-                    ],
-                    correct: 0
-                },
-                {
-                    question: "Who invented the architecture we studied?",
-                    options: ["Alan Turing", "Charles Babbage", "John von Neumann", "Grace Hopper"],
-                    correct: 2
-                }
+                { question: "What is the stored program concept?", options: ["Programs are stored on hard drives", "Instructions and data are stored in the same memory", "Programs are stored in ROM", "Instructions are stored separately from data"], correct: 1 },
+                { question: "Which register holds the address of the next instruction?", options: ["MAR", "MDR", "Program Counter", "Accumulator"], correct: 2 },
+                { question: "What does the ALU do?", options: ["Stores data permanently", "Performs mathematical and logical operations", "Controls data flow", "Fetches instructions"], correct: 1 },
+                { question: "In which order does the FDE cycle occur?", options: ["Execute, Decode, Fetch", "Decode, Fetch, Execute", "Fetch, Decode, Execute", "Fetch, Execute, Decode"], correct: 2 },
+                { question: "What type of memory is cache?", options: ["Slow memory in RAM", "Fast memory on the CPU", "Permanent storage", "Virtual memory"], correct: 1 },
+                { question: "Which bus carries control signals?", options: ["Address Bus", "Data Bus", "Control Bus", "System Bus"], correct: 2 },
+                { question: "What does MDR stand for?", options: ["Memory Data Register", "Memory Direct Register", "Main Data Register", "Memory Decode Register"], correct: 0 },
+                { question: "Who invented the architecture we studied?", options: ["Alan Turing", "Charles Babbage", "John von Neumann", "Grace Hopper"], correct: 2 }
             ];
-            
-            // Shuffle questions
             quizQuestions = quizQuestions.sort(() => Math.random() - 0.5);
-            
-            // Display questions
             const quizContainer = document.getElementById('summaryQuiz');
             quizContainer.innerHTML = '';
-            
             quizQuestions.forEach((q, index) => {
                 const questionDiv = document.createElement('div');
                 questionDiv.className = 'quiz-question';
-                questionDiv.innerHTML = `
-                    <h4>Question ${index + 1}: ${q.question}</h4>
-                    <div class="quiz-options">
-                        ${q.options.map((opt, i) => `
-                            <div class="quiz-option" onclick="selectSummaryAnswer(${index}, ${i})">
-                                ${opt}
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
+                questionDiv.innerHTML = `<h4>Question ${index + 1}: ${q.question}</h4><div class="quiz-options">${q.options.map((opt, i) => `<div class="quiz-option" onclick="selectSummaryAnswer(${index}, ${i})">${opt}</div>`).join('')}</div>`;
                 quizContainer.appendChild(questionDiv);
             });
-            
             document.getElementById('submitQuizButton').style.display = 'block';
         }
         
         function selectSummaryAnswer(questionIndex, optionIndex) {
             currentQuizAnswers[questionIndex] = optionIndex;
-            
-            // Update visual selection
-            const questionDiv = document.querySelectorAll('.quiz-question')[index];
+            const questionDiv = document.querySelectorAll('.quiz-question')[questionIndex];
             questionDiv.querySelectorAll('.quiz-option').forEach((opt, i) => {
                 opt.classList.toggle('selected', i === optionIndex);
             });
@@ -2428,12 +2200,10 @@
         function checkSummaryQuiz() {
             let correct = 0;
             const results = document.getElementById('quizResults');
-            
             quizQuestions.forEach((q, index) => {
                 const selectedAnswer = currentQuizAnswers[index];
                 const questionDiv = document.querySelectorAll('.quiz-question')[index];
                 const options = questionDiv.querySelectorAll('.quiz-option');
-                
                 if (selectedAnswer === q.correct) {
                     correct++;
                     options[selectedAnswer].classList.add('correct');
@@ -2442,88 +2212,58 @@
                     options[q.correct].classList.add('correct');
                 }
             });
-            
             const percentage = Math.round((correct / quizQuestions.length) * 100);
-            results.innerHTML = `
-                <h3>Quiz Results: ${correct}/${quizQuestions.length} (${percentage}%)</h3>
-                <p>${percentage >= 80 ? '🎉 Excellent work!' : percentage >= 60 ? '👍 Good effort!' : '📚 Keep studying!'}</p>
-            `;
-            
-            if (percentage >= 80) {
-                addXP(50, 'Quiz Master');
-            } else if (percentage >= 60) {
-                addXP(30, 'Quiz Completer');
-            } else {
-                addXP(20, 'Quiz Attempter');
-            }
-            
-            if (level >= 5) {
-                showAchievement('🏆 MAXIMUM LEVEL ACHIEVED! You are a Von Neumann Master!', 0);
-            }
+            results.innerHTML = `<h3>Quiz Results: ${correct}/${quizQuestions.length} (${percentage}%)</h3><p>${percentage >= 80 ? '🎉 Excellent work!' : percentage >= 60 ? '👍 Good effort!' : '📚 Keep studying!'}</p>`;
+            if (percentage >= 80) addXP(50, 'Quiz Master');
+            else if (percentage >= 60) addXP(30, 'Quiz Completer');
+            else addXP(20, 'Quiz Attempter');
+            if (level >= 5) showAchievement('🏆 MAXIMUM LEVEL ACHIEVED! You are a Von Neumann Master!', 0);
         }
         
-        // Anti-paste mechanism
         document.addEventListener('DOMContentLoaded', function() {
             const noPasteElements = document.querySelectorAll('.no-paste');
-            
             noPasteElements.forEach(element => {
                 element.addEventListener('paste', function(e) {
                     e.preventDefault();
-                    
                     if (!pasteDetected) {
                         pasteDetected = true;
                         document.getElementById('shameMessage').style.display = 'block';
                         document.body.style.backgroundColor = '#ff000020';
-                        
-                        // Make the shame permanent
                         setTimeout(() => {
                             document.body.classList.add('paste-shame');
                         }, 100);
                     }
-                    
                     element.classList.add('paste-attempted');
                     setTimeout(() => {
                         element.classList.remove('paste-attempted');
                     }, 3000);
-                    
                     return false;
                 });
-                
-                // Also prevent context menu
                 element.addEventListener('contextmenu', function(e) {
                     e.preventDefault();
                     return false;
                 });
             });
-            
-            // Initialize drag and drop
             initializeDragAndDrop();
-            
-            // Keyboard navigation
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                     const activeSection = document.querySelector('.section.active');
                     const sections = Array.from(document.querySelectorAll('.section'));
                     const currentIndex = sections.indexOf(activeSection);
-                    
                     let newIndex;
                     if (e.key === 'ArrowLeft') {
                         newIndex = Math.max(0, currentIndex - 1);
                     } else {
                         newIndex = Math.min(sections.length - 1, currentIndex + 1);
                     }
-                    
                     if (newIndex !== currentIndex) {
                         showSection(sections[newIndex].id);
                         document.querySelectorAll('.nav-button')[newIndex].classList.add('active');
                     }
                 }
             });
-            
-            // Easter egg
             let konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
             let konamiIndex = 0;
-            
             document.addEventListener('keydown', function(e) {
                 if (e.key === konamiCode[konamiIndex]) {
                     konamiIndex++;
@@ -2537,87 +2277,159 @@
             });
         });
         
-        // Ensure proper touch handling for mobile
         if ('ontouchstart' in window) {
             document.body.classList.add('touch-device');
         }
         
-        // Service worker for offline capability (optional enhancement)
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(() => {});
         }
 
-        // --- MGS Platform Integration Script ---
+        // --- END OF WORKSHEET-SPECIFIC SCRIPT ---
 
-        // FIX: Add message listener to handle communication from the parent window
-        window.addEventListener('message', (event) => {
-            // A basic security check
-            if (event.source !== parent) {
-                return;
-            }
-
-            const message = event.data;
-
-            if (message.type === 'getWorksheetState') {
-                console.log("Worksheet received request for state from parent.");
-                const currentState = getWorksheetState();
-                // Post the state back to the parent window
-                parent.postMessage({ type: 'worksheetState', payload: currentState }, event.origin);
-            }
-
-            if (message.type === 'loadWorksheetState') {
-                console.log("Worksheet received state to load from parent.", message.payload);
-                loadWorksheetState(message.payload);
-            }
-        });
-
-
+        // --- MGS Platform Integration Script v1.3 ---
+        
         /**
          * Gathers all the current answers and progress from the worksheet.
+         * This function is SPECIFIC to this Von Neumann worksheet.
          * @returns {object} An object containing the student's work.
          */
         function getWorksheetState() {
-            console.log("getWorksheetState called inside worksheet.");
+            console.log("getWorksheetState (Von Neumann) called.");
             const state = {
-                starterActivityScore: document.getElementById('starterFeedback')?.textContent || '',
+                starterActivity: {},
+                vonNeumannMatching: {},
                 registerBlanks: {
                     blank1: document.getElementById('blank1')?.value || '',
                     blank2: document.getElementById('blank2')?.value || '',
                     blank3: document.getElementById('blank3')?.value || '',
                 },
-                fdeSequenceOrder: Array.from(document.querySelectorAll('#fdeDropZones .drag-item')).map(item => item.textContent),
+                fdeSequenceOrder: Array.from(document.querySelectorAll('#fdeDropZones .drag-item')).map(item => item.dataset.order),
+                practiceQ1: document.getElementById('practiceQ1')?.value || '',
+                practiceQ2: document.getElementById('practiceQ2')?.value || '',
+                extension1: document.getElementById('extensionAnswer1')?.value || '',
+                extension2: document.getElementById('extensionAnswer2')?.value || '',
                 xp: xp,
                 level: level,
                 achievements: Array.from(achievements)
             };
             
-            console.log("Returning state:", state);
+            document.querySelectorAll('#starter .drop-zone').forEach(zone => {
+                if (zone.children.length > 1) state.starterActivity[zone.dataset.expected] = zone.children[1].dataset.answer;
+            });
+             document.querySelectorAll('#section1 .drop-zone').forEach(zone => {
+                if (zone.children.length > 1) state.vonNeumannMatching[zone.dataset.expected] = zone.children[1].dataset.answer;
+            });
+
             return state;
         }
 
         /**
          * Takes a saved state object and restores the worksheet to that state.
+         * This function is SPECIFIC to this Von Neumann worksheet.
          * @param {object} savedState - The object containing the student's saved work.
          */
         function loadWorksheetState(savedState) {
-            console.log("loadWorksheetState called inside worksheet with:", savedState);
-            
+            console.log("loadWorksheetState (Von Neumann) called with:", savedState);
             if (!savedState) return;
 
             if (savedState.registerBlanks) {
                 document.getElementById('blank1').value = savedState.registerBlanks.blank1 || '';
                 document.getElementById('blank2').value = savedState.registerBlanks.blank2 || '';
                 document.getElementById('blank3').value = savedState.registerBlanks.blank3 || '';
-                checkRegisterBlanks(); // Re-check to apply styling
+                checkRegisterBlanks();
             }
-            
+            document.getElementById('practiceQ1').value = savedState.practiceQ1 || '';
+            document.getElementById('practiceQ2').value = savedState.practiceQ2 || '';
+            document.getElementById('extensionAnswer1').value = savedState.extension1 || '';
+            document.getElementById('extensionAnswer2').value = savedState.extension2 || '';
+
             if (savedState.xp) {
                 xp = savedState.xp;
                 level = savedState.level;
                 achievements = new Set(savedState.achievements || []);
                 updateXPBar();
             }
+            
+            console.log("Drag-and-drop states are complex to restore and are skipped in this example.");
         }
+        
+        // --- Universal Communication Listener ---
+        window.addEventListener('message', (event) => {
+            if (event.source !== parent) return;
+            const message = event.data;
+            if (!message || !message.type) return;
+
+            switch(message.type) {
+                case 'getWorksheetState':
+                    if (typeof getWorksheetState === 'function') {
+                        const currentState = getWorksheetState();
+                        parent.postMessage({ type: 'worksheetStateResponse', payload: currentState }, event.origin);
+                    }
+                    break;
+                case 'loadWorksheetState':
+                    if (typeof loadWorksheetState === 'function') {
+                        loadWorksheetState(message.payload);
+                    }
+                    break;
+                case 'requestPdfData':
+                    if (window.html2canvas) {
+                        const sections = document.querySelectorAll('.section');
+                        const activeSection = document.querySelector('.section.active');
+                        const header = document.querySelector('.header');
+                        
+                        // Temporarily show all sections and hide problematic animation
+                        header.classList.add('hide-before');
+                        sections.forEach(s => s.style.display = 'block');
+                        
+                        html2canvas(document.body, { scale: 2, useCORS: true, allowTaint: true }).then(canvas => {
+                            const imgData = canvas.toDataURL('image/png');
+                            parent.postMessage({ type: 'pdfDataResponse', payload: imgData }, event.origin);
+                        }).finally(() => {
+                            // Restore original view
+                            header.classList.remove('hide-before');
+                            sections.forEach(s => s.style.display = 'none');
+                            if(activeSection) activeSection.style.display = 'block';
+                        });
+                    }
+                    break;
+                case 'requestTextData':
+                    let textContent = `ANSWERS FOR: ${document.title}\n========================================\n\n`;
+                    
+                    document.querySelectorAll('section').forEach(section => {
+                        const title = section.querySelector('h2, h3');
+                        if (!title) return;
+
+                        textContent += `\n--- ${title.textContent.trim()} ---\n\n`;
+
+                        // Handle textareas and inputs
+                        section.querySelectorAll('textarea, input[type="text"], input[type="number"]').forEach(el => {
+                            const label = el.previousElementSibling?.textContent || el.closest('div')?.querySelector('p')?.textContent.trim() || 'Answer';
+                            if(el.value) {
+                                textContent += `${label}:\n${el.value}\n\n`;
+                            }
+                        });
+
+                        // Handle drag and drop zones
+                        section.querySelectorAll('.drop-zone').forEach(zone => {
+                            const droppedItem = zone.querySelector('.drag-item');
+                            if(droppedItem) {
+                                const question = zone.querySelector('p')?.textContent.trim() || zone.dataset.expected;
+                                textContent += `Question: ${question}\nAnswer: ${droppedItem.textContent}\n\n`;
+                            }
+                        });
+
+                        // Handle quizzes
+                        section.querySelectorAll('.quiz-option.selected').forEach(opt => {
+                            const question = opt.closest('.quiz-question, div').querySelector('p, h4').textContent.trim();
+                            textContent += `Question: ${question}\nSelected Answer: ${opt.textContent.trim()}\n\n`;
+                        });
+                    });
+
+                    parent.postMessage({ type: 'textDataResponse', payload: textContent }, event.origin);
+                    break;
+            }
+        });
     </script>
 </body>
 </html>

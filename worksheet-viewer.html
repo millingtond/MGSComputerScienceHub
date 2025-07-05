@@ -15,10 +15,10 @@
         }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 flex flex-col h-screen">
 
     <!-- Navigation Bar -->
-    <nav class="bg-white shadow-md">
+    <nav class="bg-white shadow-md flex-shrink-0">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
@@ -27,14 +27,15 @@
                         Back to Dashboard
                     </a>
                 </div>
-                <div id="worksheetTitle" class="hidden sm:block text-lg font-semibold text-gray-700">
+                <div id="worksheetTitle" class="hidden sm:block text-lg font-semibold text-gray-700 truncate">
                     Loading Worksheet...
                 </div>
-                <div class="flex items-center gap-4">
-                    <div id="saveStatus" class="text-sm text-gray-500"></div>
-                     <button id="saveProgressButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg disabled:bg-blue-400">Save Progress</button>
-                    <button id="submitWorkButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded-lg disabled:bg-green-400">Mark as Complete</button>
-                    <button id="logoutButton" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-sm">
+                <div class="flex items-center gap-2 sm:gap-4">
+                    <div id="saveStatus" class="text-sm text-gray-500 w-28 text-center"></div>
+                     <button id="saveProgressButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 sm:px-5 rounded-lg disabled:bg-blue-400 text-sm">Save</button>
+                    <button id="submitWorkButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 sm:px-5 rounded-lg disabled:bg-green-400 text-sm">Submit</button>
+                    <button id="exportTxtButton" class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-3 sm:px-4 rounded-lg text-sm">Export</button>
+                    <button id="logoutButton" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 sm:px-4 rounded-lg text-sm">
                         Logout
                     </button>
                 </div>
@@ -42,10 +43,14 @@
         </div>
     </nav>
 
-    <!-- Main Content: Iframe takes up the full view -->
-    <main id="worksheetContainer" class="h-[calc(100vh-64px)] bg-white">
+    <!-- Main Content: Iframe takes up the remaining view -->
+    <main id="worksheetContainer" class="flex-grow bg-white">
         <div id="worksheetLoading" class="h-full flex items-center justify-center">
-            <p class="text-gray-500">Loading worksheet content...</p>
+             <svg class="animate-spin h-8 w-8 text-indigo-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="ml-2 text-gray-500">Loading worksheet content...</p>
         </div>
         <iframe id="worksheetFrame" class="hidden"></iframe>
     </main>
@@ -82,20 +87,30 @@
         const saveProgressButton = document.getElementById('saveProgressButton');
         const submitWorkButton = document.getElementById('submitWorkButton');
         const saveStatus = document.getElementById('saveStatus');
+        const exportTxtButton = document.getElementById('exportTxtButton');
 
         let currentAssignmentId = null;
         let resolveWorksheetState = null;
-        let autoSaveInterval = null; // Variable to hold the interval ID
+        let autoSaveInterval = null;
 
-        // --- Cross-Origin Communication Handler ---
         window.addEventListener('message', (event) => {
             if (!worksheetFrame.src.startsWith(event.origin)) {
                  console.warn("Message received from unexpected origin:", event.origin);
                  return;
             }
-            if (event.data && event.data.type === 'worksheetStateResponse' && resolveWorksheetState) {
-                resolveWorksheetState(event.data.payload);
-                resolveWorksheetState = null;
+            const message = event.data;
+            if (message && message.type) {
+                switch(message.type) {
+                    case 'worksheetStateResponse':
+                        if (resolveWorksheetState) {
+                            resolveWorksheetState(message.payload);
+                            resolveWorksheetState = null;
+                        }
+                        break;
+                    case 'textDataResponse':
+                        generateTxtFromData(message.payload);
+                        break;
+                }
             }
         });
 
@@ -142,11 +157,10 @@
                         }, '*');
                     }
 
-                    // Start auto-save interval after the worksheet is fully loaded
-                    if (autoSaveInterval) clearInterval(autoSaveInterval); // Clear any existing interval
+                    if (autoSaveInterval) clearInterval(autoSaveInterval);
                     autoSaveInterval = setInterval(() => {
-                        saveWork('In Progress', true); // Call saveWork with the auto-save flag
-                    }, 30000); // 30000 milliseconds = 30 seconds
+                        saveWork('In Progress', true);
+                    }, 30000);
                 };
 
             } catch (error) {
@@ -155,17 +169,13 @@
             }
         }
         
-        // --- STATE MANAGEMENT ---
-
         function getWorksheetStateFromIframe() {
             return new Promise((resolve, reject) => {
                 resolveWorksheetState = resolve;
                 worksheetFrame.contentWindow.postMessage({ type: 'getWorksheetState' }, '*');
-
-                // Reject the promise if the worksheet doesn't respond in time.
                 setTimeout(() => {
                     if (resolveWorksheetState) {
-                        reject(new Error("Worksheet did not respond. It may be missing the required integration script."));
+                        reject(new Error("Worksheet did not respond."));
                         resolveWorksheetState = null;
                     }
                 }, 1000);
@@ -186,18 +196,16 @@
 
             try {
                 const studentWorkData = await getWorksheetStateFromIframe();
-
                 const assignmentRef = doc(db, "assignments", currentAssignmentId);
                 await updateDoc(assignmentRef, {
                     studentWork: studentWorkData,
                     status: newStatus
                 });
 
-                const saveTime = new Date().toLocaleTimeString();
-                saveStatus.textContent = isAutoSave ? `Auto-saved at ${saveTime}` : `Saved at ${saveTime}`;
+                saveStatus.textContent = isAutoSave ? `Auto-saved` : `Saved`;
 
                 if (newStatus === 'Completed') {
-                    clearInterval(autoSaveInterval); // Stop auto-saving after submission
+                    clearInterval(autoSaveInterval);
                     alert('Your work has been submitted successfully!');
                     window.location.href = './student-dashboard.html';
                 }
@@ -220,16 +228,38 @@
             }
         }
 
+        function requestTxtExport() {
+            saveStatus.textContent = 'Exporting...';
+            worksheetFrame.contentWindow.postMessage({ type: 'requestTextData' }, '*');
+        }
+
+        function generateTxtFromData(textContent) {
+            const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${worksheetTitle.textContent.replace(/ /g, '_')}_answers.txt`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+            saveStatus.textContent = 'Exported!';
+            setTimeout(() => { saveStatus.textContent = '' }, 3000);
+        }
+
         saveProgressButton.addEventListener('click', () => saveWork('In Progress', false));
-        submitWorkButton.addEventListener('click', () => saveWork('Completed', false));
+        submitWorkButton.addEventListener('click', () => {
+             if (confirm("Are you sure you want to submit? You won't be able to edit your work after submitting.")) {
+                saveWork('Completed', false);
+            }
+        });
         logoutButton.addEventListener('click', () => {
-            clearInterval(autoSaveInterval); // Stop auto-saving on logout
+            clearInterval(autoSaveInterval);
             sessionStorage.removeItem('mgs_student_uid');
             sessionStorage.removeItem('mgs_student_username');
             signOut(auth).finally(() => window.location.href = './student-login.html');
         });
+        exportTxtButton.addEventListener('click', requestTxtExport);
 
-        // Also clear interval when the page is closed or navigated away from
         window.addEventListener('beforeunload', () => {
             if (autoSaveInterval) {
                 clearInterval(autoSaveInterval);

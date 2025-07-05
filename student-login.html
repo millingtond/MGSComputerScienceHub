@@ -12,6 +12,11 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+        /* Style for invalid input fields */
+        .invalid-input {
+            border-color: #ef4444; /* red-500 */
+            box-shadow: 0 0 0 2px #fecaca; /* red-200 */
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
@@ -25,7 +30,7 @@
         </div>
 
         <!-- Login Form -->
-        <form id="loginForm" class="mt-8 space-y-6">
+        <form id="loginForm" class="mt-8 space-y-6" novalidate>
             <!-- Username Input -->
             <div>
                 <label for="username" class="text-sm font-medium text-gray-700">Username</label>
@@ -65,137 +70,115 @@
 
     <!-- Firebase SDKs -->
     <script type="module">
-        // Import necessary Firebase functions
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, where, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Firebase Configuration ---
-const firebaseConfig = {
-  apiKey: "AIzaSyB5J6kLg1N8Sul_zE_wHo1OiuDDwsuix2A",
-  authDomain: "mgscompsci-dda86.firebaseapp.com",
-  projectId: "mgscompsci-dda86",
-  storageBucket: "mgscompsci-dda86.firebasestorage.app",
-  messagingSenderId: "850907435330",
-  appId: "1:850907435330:web:735c3d1a5e4a483a9238db"
-};
-
-
+        const firebaseConfig = {
+          apiKey: "AIzaSyB5J6kLg1N8Sul_zE_wHo1OiuDDwsuix2A",
+          authDomain: "mgscompsci-dda86.firebaseapp.com",
+          projectId: "mgscompsci-dda86",
+          storageBucket: "mgscompsci-dda86.firebasestorage.app",
+          messagingSenderId: "850907435330",
+          appId: "1:850907435330:web:735c3d1a5e4a483a9238db"
+        };
         const appId = 'default-app-id';
 
-
-        // --- App Initialization ---
-        let app;
-        let auth;
-        let db;
-
+        let app, auth, db;
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
-            // setLogLevel('debug'); // Uncomment for detailed Firestore logs
             console.log("Firebase initialized successfully.");
         } catch (e) {
             console.error("Error initializing Firebase:", e);
             const errorMessageDiv = document.getElementById('errorMessage');
             errorMessageDiv.textContent = 'Error connecting to the platform. Please contact support.';
             errorMessageDiv.classList.remove('hidden');
-            // FIX: Removed illegal 'return' statement from the main script body.
         }
         
-        // --- DOM Element References ---
         const loginForm = document.getElementById('loginForm');
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
         const submitButton = document.getElementById('submitButton');
         const errorMessageDiv = document.getElementById('errorMessage');
 
-        // --- Helper Functions ---
-        /**
-         * Hashes a string using the SHA-256 algorithm.
-         * @param {string} string - The string to hash.
-         * @returns {Promise<string>} A promise that resolves to the hex-encoded hash.
-         */
         async function sha256(string) {
             const utf8 = new TextEncoder().encode(string);
             const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            return hashHex;
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
-        // --- Main Login Logic ---
+        function showLoginError(message) {
+            errorMessageDiv.textContent = message;
+            errorMessageDiv.classList.remove('hidden');
+            submitButton.disabled = false;
+            submitButton.textContent = 'Sign in';
+        }
+
         loginForm.addEventListener('submit', async (event) => {
-            event.preventDefault(); // Prevent the form from submitting the traditional way
+            event.preventDefault();
             
-            // Reset UI state
             submitButton.disabled = true;
             submitButton.textContent = 'Checking...';
             errorMessageDiv.classList.add('hidden');
+            usernameInput.classList.remove('invalid-input');
+            passwordInput.classList.remove('invalid-input');
 
             const username = usernameInput.value.trim();
             const password = passwordInput.value;
 
-            if (!username || !password) {
-                errorMessageDiv.textContent = 'Username and password cannot be empty.';
-                errorMessageDiv.classList.remove('hidden');
-                submitButton.disabled = false;
-                submitButton.textContent = 'Sign in';
+            // --- Client-side validation ---
+            if (!username) {
+                usernameInput.classList.add('invalid-input');
+                showLoginError('Please enter your username.');
+                return;
+            }
+            if (!password) {
+                passwordInput.classList.add('invalid-input');
+                showLoginError('Please enter your password.');
                 return;
             }
             
             try {
-                // Anonymously sign in to Firebase to get permissions to read the students collection
                 await signInAnonymously(auth);
                 console.log("Anonymous sign-in successful for query.");
 
-                // Create a query against the 'students' collection
                 const studentsRef = collection(db, `/artifacts/${appId}/public/data/students`);
                 const q = query(studentsRef, where("username", "==", username));
-
                 const querySnapshot = await getDocs(q);
 
                 if (querySnapshot.empty) {
-                    // No user found with that username
                     throw new Error("Invalid username or password.");
                 }
 
                 let studentFound = false;
                 for (const doc of querySnapshot.docs) {
                     const studentData = doc.data();
-                    const storedPasswordHash = studentData.password; // The hash from the database
-                    
-                    // Hash the password the user entered to compare it
+                    const storedPasswordHash = studentData.password;
                     const enteredPasswordHash = await sha256(password);
 
                     if (enteredPasswordHash === storedPasswordHash) {
-                        // Passwords match!
                         studentFound = true;
                         console.log("Login successful for student:", studentData.studentUID);
                         
-                        // Store the student's unique ID in session storage to keep them logged in
                         sessionStorage.setItem('mgs_student_uid', studentData.studentUID);
                         sessionStorage.setItem('mgs_student_username', studentData.username);
 
-                        // Redirect to the student dashboard
                         window.location.href = './student-dashboard.html';
-                        break; // Exit the loop
+                        break;
                     }
                 }
                 
                 if (!studentFound) {
-                    // Username was found, but password was incorrect
                     throw new Error("Invalid username or password.");
                 }
 
             } catch (error) {
                 console.error("Login Error:", error);
-                errorMessageDiv.textContent = error.message;
-                errorMessageDiv.classList.remove('hidden');
-                
-                // Re-enable the form
-                submitButton.disabled = false;
-                submitButton.textContent = 'Sign in';
+                // Provide a generic error to the user for security
+                showLoginError("Invalid username or password. Please try again.");
             }
         });
 
